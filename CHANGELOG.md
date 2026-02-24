@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.3.0...finsage-web-v0.3.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* harden auth and firestore listeners for production errors ([facc425](https://github.com/arif481/FinSage/commit/facc42510bac55acc207757e88baabb1d3872980))
+
 ## [0.3.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.2.0...finsage-web-v0.3.0) (2026-02-24)
 
 
