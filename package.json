@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --project demo-finsage --only firestore \"vitest --config vitest.rules.config.ts run\"",
     "test:all": "npm run test && npm run test:rules",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "preview": "vite preview"

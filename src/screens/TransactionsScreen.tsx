@@ -3,6 +3,7 @@ import { CsvImportExport } from '@/features/transactions/CsvImportExport'
 import { TransactionForm, TransactionFormValues } from '@/features/transactions/TransactionForm'
 import { TransactionTable } from '@/features/transactions/TransactionTable'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { classifyExpense } from '@/services/ai/assistant'
 import { downloadCsv, parseTransactionsCsv, toTransactionsCsv } from '@/services/csv/transactionsCsv'
@@ -37,6 +38,7 @@ const toPayload = (values: TransactionFormValues): TransactionInput => ({
 
 export const TransactionsScreen = () => {
   const { user } = useAuth()
+  const currency = useCurrency()
   const { categories, loading, transactions } = useFinanceCollections(user?.uid)
   const [editingTransaction, setEditingTransaction] = useState<FinanceTransaction | undefined>()
   const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | undefined>()
@@ -198,7 +200,7 @@ export const TransactionsScreen = () => {
 
       <TransactionTable
         categories={categories}
-        currency="USD"
+        currency={currency}
         transactions={filteredTransactions}
         onDelete={handleDelete}
         onEdit={(transaction) => {

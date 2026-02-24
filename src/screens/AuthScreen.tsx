@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 export const AuthScreen = () => {
@@ -32,7 +33,9 @@ export const AuthScreen = () => {
     <main className="auth-layout">
       <section className="auth-card">
         <h1>FinSage</h1>
-        <p className="section-subtitle">Secure personal finance tracking powered by Firebase and Gemini.</p>
+        <p className="section-subtitle">
+          Production-grade personal finance platform for budgets, transactions, reporting, and AI assistance.
+        </p>
 
         <div className="toggle-row" role="tablist" aria-label="Authentication mode">
           <button
@@ -108,6 +111,16 @@ export const AuthScreen = () => {
         >
           Continue with Google
         </button>
+
+        <div className="auth-meta">
+          <span>Developed by Arif</span>
+          <div className="auth-meta__links">
+            <Link to="/about">About</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/support">Support</Link>
+          </div>
+        </div>
       </section>
     </main>
   )

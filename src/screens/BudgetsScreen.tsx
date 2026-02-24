@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BudgetPlanner } from '@/features/budgets/BudgetPlanner'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { upsertBudget } from '@/services/firestore/budgets'
 import { budgetProgress } from '@/utils/finance'
@@ -8,6 +9,7 @@ import { toMonthKey } from '@/utils/format'
 
 export const BudgetsScreen = () => {
   const { user } = useAuth()
+  const currency = useCurrency()
   const { budgets, categories, loading, transactions } = useFinanceCollections(user?.uid)
   const [month, setMonth] = useState(toMonthKey(new Date().toISOString()))
   const [saving, setSaving] = useState(false)
@@ -46,7 +48,7 @@ export const BudgetsScreen = () => {
       <BudgetPlanner
         budgets={budgets}
         categories={categories}
-        currency="USD"
+        currency={currency}
         month={month}
         progress={progress}
         saving={saving || loading}
