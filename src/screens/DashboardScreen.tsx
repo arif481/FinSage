@@ -12,7 +12,7 @@ import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 export const DashboardScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { budgets, categories, loading, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
     return <LoadingScreen />
@@ -43,6 +43,11 @@ export const DashboardScreen = () => {
 
   return (
     <main className="screen stack">
+      {error ? (
+        <p className="error-text">
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+        </p>
+      ) : null}
       <header className="screen-header">
         <div>
           <h2>Dashboard</h2>

@@ -1,11 +1,13 @@
 import { ReactNode, createContext, useEffect, useMemo, useState } from 'react'
 import {
+  AuthError,
   GoogleAuthProvider,
   User,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from 'firebase/auth'
 import { auth } from '@/services/firebase/config'
@@ -32,25 +34,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    void getRedirectResult(auth).catch((error: AuthError) => {
+      console.error('Google sign-in redirect failed:', error.message)
+    })
+
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-      setUser(nextUser)
+      try {
+        setUser(nextUser)
 
-      if (!nextUser) {
-        setLoading(false)
-        return
+        if (!nextUser) {
+          setLoading(false)
+          return
+        }
+
+        const profile = await getUserProfile(nextUser.uid)
+
+        if (!profile) {
+          await createUserProfile(
+            nextUser.uid,
+            nextUser.email ?? '',
+            nextUser.displayName ?? 'FinSage user',
+          )
+        }
+
+        await seedDefaultCategories(nextUser.uid)
+      } catch (error) {
+        console.error('Auth initialization failed:', error)
       }
 
-      const profile = await getUserProfile(nextUser.uid)
-
-      if (!profile) {
-        await createUserProfile(
-          nextUser.uid,
-          nextUser.email ?? '',
-          nextUser.displayName ?? 'FinSage user',
-        )
-      }
-
-      await seedDefaultCategories(nextUser.uid)
       setLoading(false)
     })
 
@@ -70,7 +81,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       },
       signInWithGoogle: async () => {
         const provider = new GoogleAuthProvider()
-        await signInWithPopup(auth, provider)
+        await signInWithRedirect(auth, provider)
       },
       signOutUser: async () => {
         await signOut(auth)

@@ -10,7 +10,7 @@ import { formatCurrency } from '@/utils/format'
 export const ReportsScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { categories, loading, transactions } = useFinanceCollections(user?.uid)
+  const { categories, error, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
     return <LoadingScreen label="Building your reports..." />
@@ -33,6 +33,11 @@ export const ReportsScreen = () => {
 
   return (
     <main className="screen stack">
+      {error ? (
+        <p className="error-text">
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+        </p>
+      ) : null}
       <header className="screen-header">
         <div>
           <h2>Insights and reports</h2>

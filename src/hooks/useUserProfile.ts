@@ -20,10 +20,16 @@ export const useUserProfile = (uid: string | undefined): UseUserProfileResult =>
 
     setLoading(true)
 
-    const unsubscribe = subscribeUserProfile(uid, (nextProfile) => {
-      setProfile(nextProfile)
-      setLoading(false)
-    })
+    const unsubscribe = subscribeUserProfile(
+      uid,
+      (nextProfile) => {
+        setProfile(nextProfile)
+        setLoading(false)
+      },
+      () => {
+        setLoading(false)
+      },
+    )
 
     return unsubscribe
   }, [uid])

@@ -1,4 +1,12 @@
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  type FirestoreError,
+} from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
 import { mapIsoDate, mapStringField } from '@/services/firestore/mappers'
 import { userSubcollectionPath } from '@/services/firestore/paths'
@@ -20,15 +28,22 @@ const toChatMessage = (id: string, data: Record<string, unknown>): ChatMessage =
 export const subscribeChatHistory = (
   uid: string,
   callback: (messages: ChatMessage[]) => void,
+  onError?: (error: FirestoreError) => void,
 ): (() => void) => {
   const chatQuery = query(
     collection(db, userSubcollectionPath(uid, collectionName)),
     orderBy('timestamp', 'asc'),
   )
 
-  return onSnapshot(chatQuery, (snapshot) => {
-    callback(snapshot.docs.map((docSnapshot) => toChatMessage(docSnapshot.id, docSnapshot.data())))
-  })
+  return onSnapshot(
+    chatQuery,
+    (snapshot) => {
+      callback(snapshot.docs.map((docSnapshot) => toChatMessage(docSnapshot.id, docSnapshot.data())))
+    },
+    (error) => {
+      onError?.(error)
+    },
+  )
 }
 
 export const addChatMessage = async (

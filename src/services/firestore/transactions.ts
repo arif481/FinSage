@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   setDoc,
   writeBatch,
+  type FirestoreError,
 } from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
 import {
@@ -43,15 +44,22 @@ const toTransaction = (id: string, data: Record<string, unknown>): FinanceTransa
 export const subscribeTransactions = (
   uid: string,
   callback: (transactions: FinanceTransaction[]) => void,
+  onError?: (error: FirestoreError) => void,
 ): (() => void) => {
   const transactionsQuery = query(
     collection(db, userSubcollectionPath(uid, collectionName)),
     orderBy('date', 'desc'),
   )
 
-  return onSnapshot(transactionsQuery, (snapshot) => {
-    callback(snapshot.docs.map((docSnapshot) => toTransaction(docSnapshot.id, docSnapshot.data())))
-  })
+  return onSnapshot(
+    transactionsQuery,
+    (snapshot) => {
+      callback(snapshot.docs.map((docSnapshot) => toTransaction(docSnapshot.id, docSnapshot.data())))
+    },
+    (error) => {
+      onError?.(error)
+    },
+  )
 }
 
 export const addTransaction = async (uid: string, payload: TransactionInput): Promise<void> => {

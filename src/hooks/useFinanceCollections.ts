@@ -7,6 +7,7 @@ import { Budget, Category, FinanceTransaction } from '@/types/finance'
 interface UseFinanceCollectionsResult {
   budgets: Budget[]
   categories: Category[]
+  error: string | null
   loading: boolean
   transactions: FinanceTransaction[]
 }
@@ -16,6 +17,7 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
   const [categories, setCategories] = useState<Category[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!uid) {
@@ -23,10 +25,12 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       setCategories([])
       setBudgets([])
       setLoading(false)
+      setError(null)
       return
     }
 
     setLoading(true)
+    setError(null)
 
     let transactionsReady = false
     let categoriesReady = false
@@ -38,23 +42,46 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       }
     }
 
-    const unsubscribeTransactions = subscribeTransactions(uid, (nextTransactions) => {
-      setTransactions(nextTransactions)
-      transactionsReady = true
-      markReady()
-    })
+    const onListenerError = (errorMessage: string) => {
+      setError(errorMessage)
+      setLoading(false)
+    }
 
-    const unsubscribeCategories = subscribeCategories(uid, (nextCategories) => {
-      setCategories(nextCategories)
-      categoriesReady = true
-      markReady()
-    })
+    const unsubscribeTransactions = subscribeTransactions(
+      uid,
+      (nextTransactions) => {
+        setTransactions(nextTransactions)
+        transactionsReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
 
-    const unsubscribeBudgets = subscribeBudgets(uid, (nextBudgets) => {
-      setBudgets(nextBudgets)
-      budgetsReady = true
-      markReady()
-    })
+    const unsubscribeCategories = subscribeCategories(
+      uid,
+      (nextCategories) => {
+        setCategories(nextCategories)
+        categoriesReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
+
+    const unsubscribeBudgets = subscribeBudgets(
+      uid,
+      (nextBudgets) => {
+        setBudgets(nextBudgets)
+        budgetsReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
 
     return () => {
       unsubscribeTransactions()
@@ -66,6 +93,7 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
   return {
     budgets,
     categories,
+    error,
     loading,
     transactions,
   }
