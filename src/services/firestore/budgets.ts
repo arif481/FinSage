@@ -6,6 +6,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  type FirestoreError,
 } from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
 import { mapNumberField, mapStringField } from '@/services/firestore/mappers'
@@ -23,15 +24,25 @@ const toBudget = (id: string, data: Record<string, unknown>): Budget => ({
 
 export const buildBudgetId = (month: string, categoryId: string): string => `${month}_${categoryId}`
 
-export const subscribeBudgets = (uid: string, callback: (budgets: Budget[]) => void): (() => void) => {
+export const subscribeBudgets = (
+  uid: string,
+  callback: (budgets: Budget[]) => void,
+  onError?: (error: FirestoreError) => void,
+): (() => void) => {
   const budgetsQuery = query(
     collection(db, userSubcollectionPath(uid, collectionName)),
     orderBy('month', 'desc'),
   )
 
-  return onSnapshot(budgetsQuery, (snapshot) => {
-    callback(snapshot.docs.map((docSnapshot) => toBudget(docSnapshot.id, docSnapshot.data())))
-  })
+  return onSnapshot(
+    budgetsQuery,
+    (snapshot) => {
+      callback(snapshot.docs.map((docSnapshot) => toBudget(docSnapshot.id, docSnapshot.data())))
+    },
+    (error) => {
+      onError?.(error)
+    },
+  )
 }
 
 export const upsertBudget = async (uid: string, budget: Omit<Budget, 'id'>): Promise<void> => {

@@ -39,7 +39,7 @@ const toPayload = (values: TransactionFormValues): TransactionInput => ({
 export const TransactionsScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { categories, loading, transactions } = useFinanceCollections(user?.uid)
+  const { categories, error, loading, transactions } = useFinanceCollections(user?.uid)
   const [editingTransaction, setEditingTransaction] = useState<FinanceTransaction | undefined>()
   const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | undefined>()
   const [aiStatus, setAiStatus] = useState<string | null>(null)
@@ -141,6 +141,11 @@ export const TransactionsScreen = () => {
 
   return (
     <main className="screen stack">
+      {error ? (
+        <p className="error-text">
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+        </p>
+      ) : null}
       <header className="screen-header">
         <div>
           <h2>Transactions</h2>
