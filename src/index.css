@@ -1,56 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --bg: #eef4f9;
+  --bg: #f8fafc;
   --bg-elevated: #ffffff;
   --bg-panel: rgba(255, 255, 255, 0.84);
-  --bg-strong: #dde8f2;
-  --border: #c7d7e8;
-  --text: #102032;
-  --text-muted: #4b6179;
-  --primary: #0a7cff;
-  --primary-strong: #0a58c4;
-  --secondary: #eef5ff;
-  --danger: #c43f3f;
-  --warning: #bb7e13;
-  --success: #0e8b74;
-  --surface-shadow: 0 18px 40px rgba(11, 35, 56, 0.1);
+  --bg-strong: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #0ea5e9;
+  --primary-strong: #0284c7;
+  --secondary: #eef2f6;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --success: #10b981;
+  --surface-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   --radius: 1rem;
   --radius-lg: 1.4rem;
+  --glow-primary: 0 0 15px rgba(14, 165, 233, 0.3);
+  --glow-success: 0 0 15px rgba(16, 185, 129, 0.2);
+  --glow-danger: 0 0 15px rgba(239, 68, 68, 0.2);
 }
 
 :root[data-theme='dark'] {
-  --bg: #071525;
-  --bg-elevated: #0f2338;
-  --bg-panel: rgba(15, 35, 56, 0.86);
-  --bg-strong: #14324d;
-  --border: #1f405b;
-  --text: #e8f2ff;
-  --text-muted: #9cb5cb;
-  --primary: #5cb9ff;
-  --primary-strong: #3a8dda;
-  --secondary: #122940;
-  --danger: #ff7d7d;
-  --warning: #f0ba44;
-  --success: #4ed4bb;
-  --surface-shadow: none;
+  --bg: #090a0f;
+  --bg-elevated: #13151f;
+  --bg-panel: rgba(19, 21, 31, 0.75);
+  --bg-strong: #1a1d2b;
+  --border: #242938;
+  --text: #e2e8f0;
+  --text-muted: #8b9bb4;
+  --primary: #00f0ff;
+  --primary-strong: #00c3ff;
+  --secondary: #1e2235;
+  --danger: #ff2a5f;
+  --warning: #ffb800;
+  --success: #00ff9d;
+  --surface-shadow: 0 8px 32px rgba(0, 240, 255, 0.08);
+  --glow-primary: 0 0 15px rgba(0, 240, 255, 0.4);
+  --glow-success: 0 0 15px rgba(0, 255, 157, 0.3);
+  --glow-danger: 0 0 15px rgba(255, 42, 95, 0.3);
 }
 
 :root[data-contrast='high'] {
-  --bg: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-panel: #ffffff;
-  --bg-strong: #f4f4f4;
-  --border: #000000;
-  --text: #000000;
-  --text-muted: #151515;
-  --primary: #0046f8;
-  --primary-strong: #0037c2;
-  --secondary: #ffffff;
-  --danger: #9f0018;
-  --warning: #7a5100;
-  --success: #005f1a;
+  --bg: #000000;
+  --bg-elevated: #000000;
+  --bg-panel: #000000;
+  --bg-strong: #111111;
+  --border: #ffffff;
+  --text: #ffffff;
+  --text-muted: #cccccc;
+  --primary: #00ffff;
+  --primary-strong: #00ffff;
+  --secondary: #222222;
+  --danger: #ff0000;
+  --warning: #ffcc00;
+  --success: #00ff00;
   --surface-shadow: none;
+  --glow-primary: none;
+  --glow-success: none;
+  --glow-danger: none;
 }
 
 * {
@@ -65,21 +74,13 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(
-      circle at 5% -10%,
-      color-mix(in srgb, var(--primary) 24%, transparent),
-      transparent 42%
-    ),
-    radial-gradient(
-      circle at 96% 0%,
-      color-mix(in srgb, var(--success) 18%, transparent),
-      transparent 38%
-    ),
-    linear-gradient(155deg, color-mix(in srgb, var(--primary) 4%, transparent), transparent 35%),
-    var(--bg);
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--primary) 6%, transparent), transparent 30%),
+    radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--success) 6%, transparent), transparent 30%);
+  background-attachment: fixed;
   color: var(--text);
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Outfit', sans-serif;
   line-height: 1.5;
   overflow-x: hidden;
   position: relative;
@@ -87,28 +88,30 @@ body {
 
 body::before,
 body::after {
-  border-radius: 999px;
   content: '';
-  filter: blur(32px);
-  pointer-events: none;
   position: fixed;
   z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(80px);
 }
 
 body::before {
-  background: color-mix(in srgb, var(--primary) 24%, transparent);
-  height: 260px;
-  left: -110px;
-  top: 36vh;
-  width: 260px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  height: 400px;
+  width: 400px;
+  top: -100px;
+  left: -100px;
+  animation: pulse-glow 8s infinite alternate ease-in-out;
 }
 
 body::after {
-  background: color-mix(in srgb, var(--success) 20%, transparent);
-  height: 220px;
-  right: -100px;
-  top: 16vh;
-  width: 220px;
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  height: 350px;
+  width: 350px;
+  bottom: -50px;
+  right: -50px;
+  animation: pulse-glow 10s infinite alternate-reverse ease-in-out;
 }
 
 h1,
@@ -183,16 +186,12 @@ a:focus-visible {
 .app-shell__sidebar {
   backdrop-filter: blur(14px);
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       color-mix(in srgb, var(--bg-elevated) 90%, transparent),
-      var(--bg-panel)
-    ),
-    radial-gradient(
-      circle at right top,
+      var(--bg-panel)),
+    radial-gradient(circle at right top,
       color-mix(in srgb, var(--primary) 20%, transparent),
-      transparent 52%
-    );
+      transparent 52%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -375,16 +374,12 @@ a:focus-visible {
 .hero-panel {
   backdrop-filter: blur(10px);
   background:
-    linear-gradient(
-      140deg,
+    linear-gradient(140deg,
       color-mix(in srgb, var(--primary) 12%, var(--bg-elevated)),
-      var(--bg-panel)
-    ),
-    radial-gradient(
-      circle at right top,
+      var(--bg-panel)),
+    radial-gradient(circle at right top,
       color-mix(in srgb, var(--success) 16%, transparent),
-      transparent 42%
-    );
+      transparent 42%);
   border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
   border-radius: var(--radius-lg);
   box-shadow: var(--surface-shadow);
@@ -396,12 +391,10 @@ a:focus-visible {
 }
 
 .hero-panel::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, #ffffff 46%, transparent),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      color-mix(in srgb, #ffffff 46%, transparent),
+      transparent);
   content: '';
   height: 1px;
   left: 0;
@@ -446,11 +439,18 @@ a:focus-visible {
 
 .card {
   animation: fade-up 460ms ease;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius);
   box-shadow: var(--surface-shadow);
   padding: 1rem;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: var(--glow-primary);
 }
 
 .stack {
@@ -481,20 +481,22 @@ a:focus-visible {
 
 .metric-card {
   animation: fade-up 420ms ease;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--bg-elevated) 85%, transparent),
-    color-mix(in srgb, var(--secondary) 70%, transparent)
-  );
-  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  background: linear-gradient(160deg,
+      color-mix(in srgb, var(--bg-elevated) 45%, transparent),
+      color-mix(in srgb, var(--secondary) 30%, transparent));
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   border-radius: 1rem;
   box-shadow: var(--surface-shadow);
   padding: 1rem;
   position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .metric-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: var(--glow-primary);
 }
 
 .metric-card__label {
@@ -508,6 +510,7 @@ a:focus-visible {
   font-size: 1.58rem;
   font-weight: 700;
   margin-top: 0.22rem;
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 30%, transparent);
 }
 
 .metric-card__subtitle {
@@ -520,12 +523,22 @@ a:focus-visible {
   border-color: color-mix(in srgb, var(--danger) 46%, var(--border));
 }
 
+.metric-card--danger:hover {
+  border-color: color-mix(in srgb, var(--danger) 80%, transparent);
+  box-shadow: var(--glow-danger);
+}
+
 .metric-card--warning {
   border-color: color-mix(in srgb, var(--warning) 52%, var(--border));
 }
 
 .metric-card--good {
   border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+}
+
+.metric-card--good:hover {
+  border-color: color-mix(in srgb, var(--success) 80%, transparent);
+  box-shadow: var(--glow-success);
 }
 
 .grid-two {
@@ -861,11 +874,9 @@ a:focus-visible {
 }
 
 .budget-progress--good::-webkit-progress-value {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--success) 74%, #21cfa7),
-    var(--success)
-  );
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--success) 74%, #21cfa7),
+      var(--success));
 }
 
 .budget-progress--warning::-webkit-progress-value {
@@ -896,16 +907,12 @@ a:focus-visible {
 .auth-layout {
   align-items: center;
   background:
-    radial-gradient(
-      circle at 0% 0%,
+    radial-gradient(circle at 0% 0%,
       color-mix(in srgb, var(--primary) 20%, transparent),
-      transparent 42%
-    ),
-    radial-gradient(
-      circle at 100% 100%,
+      transparent 42%),
+    radial-gradient(circle at 100% 100%,
       color-mix(in srgb, var(--success) 18%, transparent),
-      transparent 48%
-    ),
+      transparent 48%),
     var(--bg);
   display: grid;
   min-height: 100vh;
@@ -1084,6 +1091,18 @@ a:focus-visible {
   width: 1px;
 }
 
+.glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-panel);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  box-shadow: var(--surface-shadow);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 50%, transparent);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1093,7 +1112,7 @@ a:focus-visible {
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
 
   to {
@@ -1102,7 +1121,42 @@ a:focus-visible {
   }
 }
 
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  from {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: scale(1.15) translate(20px, -15px);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -1112,6 +1166,7 @@ a:focus-visible {
 }
 
 @media (max-width: 1160px) {
+
   .hero-panel__meta,
   .insight-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));

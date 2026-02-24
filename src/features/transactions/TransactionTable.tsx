@@ -41,10 +41,13 @@ export const TransactionTable = ({
             </tr>
           </thead>
           <tbody>
-            {transactions.map((transaction) => {
+            {transactions.map((transaction, index) => {
               const isExpense = transaction.type === 'expense'
               return (
-                <tr key={transaction.id}>
+                <tr
+                  key={transaction.id}
+                  style={{ animation: 'stagger-fade-in 0.3s ease forwards', opacity: 0, animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+                >
                   <td>{formatDate(transaction.date)}</td>
                   <td>{transaction.description}</td>
                   <td>
