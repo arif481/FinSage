@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.5.0...finsage-web-v0.5.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **auth:** use signInWithPopup instead of redirect for google auth ([53e32eb](https://github.com/arif481/FinSage/commit/53e32eb3a058c56f9fa5306f0cb0520a3e0b71f9))
+
 ## [0.5.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.4.0...finsage-web-v0.5.0) (2026-02-24)
 
 
