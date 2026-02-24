@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isCollaborator(userId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(userId))
+        && request.auth.uid in get(/databases/$(database)/documents/users/$(userId)).data.collaborators;
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      allow read: if isOwner(userId) || isCollaborator(userId);
+      allow update, delete: if isOwner(userId);
+
+      match /transactions/{txnId} {
+        allow read: if isOwner(userId) || isCollaborator(userId);
+        allow write: if isOwner(userId) || isCollaborator(userId);
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isOwner(userId) || isCollaborator(userId);
+        allow write: if isOwner(userId);
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if isOwner(userId) || isCollaborator(userId);
+        allow write: if isOwner(userId) || isCollaborator(userId);
+      }
+
+      match /chatHistory/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /insights/{insightId} {
+        allow read: if isOwner(userId) || isCollaborator(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+  }
+}

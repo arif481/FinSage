@@ -1,0 +1,107 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Budget, BudgetProgress, Category } from '@/types/finance'
+import { formatCurrency } from '@/utils/format'
+
+interface BudgetPlannerProps {
+  budgets: Budget[]
+  categories: Category[]
+  currency: string
+  month: string
+  progress: BudgetProgress[]
+  saving?: boolean
+  onSaveBudget: (payload: { categoryId: string; limit: number; month: string }) => Promise<void>
+}
+
+export const BudgetPlanner = ({
+  budgets,
+  categories,
+  currency,
+  month,
+  progress,
+  saving,
+  onSaveBudget,
+}: BudgetPlannerProps) => {
+  const [limits, setLimits] = useState<Record<string, number>>({})
+
+  const existingByCategory = useMemo(() => {
+    const map = new Map<string, Budget>()
+
+    for (const budget of budgets) {
+      if (budget.month !== month) {
+        continue
+      }
+
+      map.set(budget.categoryId, budget)
+    }
+
+    return map
+  }, [budgets, month])
+
+  useEffect(() => {
+    const nextLimits: Record<string, number> = {}
+
+    for (const category of categories) {
+      nextLimits[category.id] = existingByCategory.get(category.id)?.limit ?? 0
+    }
+
+    setLimits(nextLimits)
+  }, [categories, existingByCategory])
+
+  const handleSave = async () => {
+    for (const categoryId of Object.keys(limits)) {
+      const limit = Number(limits[categoryId])
+
+      if (!Number.isFinite(limit) || limit <= 0) {
+        continue
+      }
+
+      await onSaveBudget({ categoryId, limit, month })
+    }
+  }
+
+  return (
+    <div className="card stack">
+      <h3>Budget planner</h3>
+      <p className="section-subtitle">Set category limits for {month}.</p>
+
+      {categories.map((category) => {
+        const categoryProgress = progress.find((item) => item.categoryId === category.id)
+        const spent = categoryProgress?.spent ?? 0
+        const limit = categoryProgress?.limit ?? limits[category.id] ?? 0
+        const percent = categoryProgress?.percent ?? 0
+
+        return (
+          <div key={category.id} className="budget-row">
+            <div className="budget-row__meta">
+              <strong>{category.name}</strong>
+              <span>
+                Spent {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
+              </span>
+            </div>
+
+            <div className="budget-row__controls">
+              <input
+                aria-label={`${category.name} budget limit`}
+                min={0}
+                step={10}
+                type="number"
+                value={limits[category.id] ?? 0}
+                onChange={(event) => {
+                  setLimits((current) => ({
+                    ...current,
+                    [category.id]: Number(event.target.value),
+                  }))
+                }}
+              />
+              <progress aria-label={`${category.name} usage`} max={100} value={Math.min(percent, 100)} />
+            </div>
+          </div>
+        )
+      })}
+
+      <button className="primary-button" disabled={saving} type="button" onClick={() => void handleSave()}>
+        Save monthly budgets
+      </button>
+    </div>
+  )
+}

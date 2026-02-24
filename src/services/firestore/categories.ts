@@ -1,0 +1,88 @@
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  writeBatch,
+  doc,
+  getDocs,
+} from 'firebase/firestore'
+import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories'
+import { db } from '@/services/firebase/config'
+import { mapStringField } from '@/services/firestore/mappers'
+import { userSubcollectionPath } from '@/services/firestore/paths'
+import { Category } from '@/types/finance'
+
+const collectionName = 'categories'
+
+const toCategory = (id: string, data: Record<string, unknown>): Category => ({
+  id,
+  name: mapStringField(data.name),
+  icon: mapStringField(data.icon, 'dot'),
+  color: mapStringField(data.color, '#8f95a1'),
+})
+
+export const subscribeCategories = (
+  uid: string,
+  callback: (categories: Category[]) => void,
+): (() => void) => {
+  const categoriesQuery = query(
+    collection(db, userSubcollectionPath(uid, collectionName)),
+    orderBy('name', 'asc'),
+  )
+
+  return onSnapshot(categoriesQuery, (snapshot) => {
+    callback(snapshot.docs.map((docSnapshot) => toCategory(docSnapshot.id, docSnapshot.data())))
+  })
+}
+
+export const addCategory = async (
+  uid: string,
+  payload: Omit<Category, 'id' | 'createdAt'>,
+): Promise<void> => {
+  await addDoc(collection(db, userSubcollectionPath(uid, collectionName)), {
+    ...payload,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export const updateCategory = async (
+  uid: string,
+  categoryId: string,
+  payload: Partial<Omit<Category, 'id' | 'createdAt'>>,
+): Promise<void> => {
+  await setDoc(
+    doc(db, userSubcollectionPath(uid, collectionName), categoryId),
+    {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
+export const seedDefaultCategories = async (uid: string): Promise<void> => {
+  const categoriesRef = collection(db, userSubcollectionPath(uid, collectionName))
+  const existing = await getDocs(categoriesRef)
+
+  if (!existing.empty) {
+    return
+  }
+
+  const batch = writeBatch(db)
+
+  for (const category of DEFAULT_CATEGORIES) {
+    const ref = doc(categoriesRef, category.id)
+    batch.set(ref, {
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      createdAt: serverTimestamp(),
+    })
+  }
+
+  await batch.commit()
+}
