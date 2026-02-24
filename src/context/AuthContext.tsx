@@ -1,13 +1,11 @@
 import { ReactNode, createContext, useEffect, useMemo, useState } from 'react'
 import {
-  AuthError,
   GoogleAuthProvider,
   User,
   createUserWithEmailAndPassword,
-  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
 } from 'firebase/auth'
 import { auth } from '@/services/firebase/config'
@@ -34,10 +32,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    void getRedirectResult(auth).catch((error: AuthError) => {
-      console.error('Google sign-in redirect failed:', error.message)
-    })
-
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       try {
         setUser(nextUser)
@@ -81,7 +75,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       },
       signInWithGoogle: async () => {
         const provider = new GoogleAuthProvider()
-        await signInWithRedirect(auth, provider)
+        await signInWithPopup(auth, provider)
       },
       signOutUser: async () => {
         await signOut(auth)
