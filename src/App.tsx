@@ -1,6 +1,7 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { PublicLayout } from '@/components/layout/PublicLayout'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -23,6 +24,25 @@ const ReportsScreen = lazy(async () =>
 const SettingsScreen = lazy(async () =>
   import('@/screens/SettingsScreen').then((module) => ({ default: module.SettingsScreen })),
 )
+const AboutScreen = lazy(async () =>
+  import('@/screens/public/AboutScreen').then((module) => ({ default: module.AboutScreen })),
+)
+const PrivacyScreen = lazy(async () =>
+  import('@/screens/public/PrivacyScreen').then((module) => ({ default: module.PrivacyScreen })),
+)
+const TermsScreen = lazy(async () =>
+  import('@/screens/public/TermsScreen').then((module) => ({ default: module.TermsScreen })),
+)
+const SupportScreen = lazy(async () =>
+  import('@/screens/public/SupportScreen').then((module) => ({ default: module.SupportScreen })),
+)
+const NotFoundScreen = lazy(async () =>
+  import('@/screens/public/NotFoundScreen').then((module) => ({ default: module.NotFoundScreen })),
+)
+
+const withLoading = (label: string, element: ReactNode) => {
+  return <Suspense fallback={<LoadingScreen label={label} />}>{element}</Suspense>
+}
 
 const ProtectedLayout = () => {
   const { user } = useAuth()
@@ -41,11 +61,7 @@ const AuthGate = () => {
     return <Navigate replace to="/" />
   }
 
-  return (
-    <Suspense fallback={<LoadingScreen label="Loading authentication..." />}>
-      <AuthScreen />
-    </Suspense>
-  )
+  return withLoading('Loading authentication...', <AuthScreen />)
 }
 
 function App() {
@@ -58,57 +74,23 @@ function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthGate />} />
+
       <Route path="/" element={<ProtectedLayout />}>
-        <Route
-          index
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading dashboard..." />}>
-              <DashboardScreen />
-            </Suspense>
-          }
-        />
-        <Route
-          path="transactions"
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading transactions..." />}>
-              <TransactionsScreen />
-            </Suspense>
-          }
-        />
-        <Route
-          path="budgets"
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading budgets..." />}>
-              <BudgetsScreen />
-            </Suspense>
-          }
-        />
-        <Route
-          path="chat"
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading assistant..." />}>
-              <ChatbotScreen />
-            </Suspense>
-          }
-        />
-        <Route
-          path="reports"
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading reports..." />}>
-              <ReportsScreen />
-            </Suspense>
-          }
-        />
-        <Route
-          path="settings"
-          element={
-            <Suspense fallback={<LoadingScreen label="Loading settings..." />}>
-              <SettingsScreen />
-            </Suspense>
-          }
-        />
+        <Route index element={withLoading('Loading dashboard...', <DashboardScreen />)} />
+        <Route path="transactions" element={withLoading('Loading transactions...', <TransactionsScreen />)} />
+        <Route path="budgets" element={withLoading('Loading budgets...', <BudgetsScreen />)} />
+        <Route path="chat" element={withLoading('Loading assistant...', <ChatbotScreen />)} />
+        <Route path="reports" element={withLoading('Loading reports...', <ReportsScreen />)} />
+        <Route path="settings" element={withLoading('Loading settings...', <SettingsScreen />)} />
       </Route>
-      <Route path="*" element={<Navigate replace to="/" />} />
+
+      <Route path="/" element={<PublicLayout />}>
+        <Route path="about" element={withLoading('Loading page...', <AboutScreen />)} />
+        <Route path="privacy" element={withLoading('Loading page...', <PrivacyScreen />)} />
+        <Route path="terms" element={withLoading('Loading page...', <TermsScreen />)} />
+        <Route path="support" element={withLoading('Loading page...', <SupportScreen />)} />
+        <Route path="*" element={withLoading('Loading page...', <NotFoundScreen />)} />
+      </Route>
     </Routes>
   )
 }

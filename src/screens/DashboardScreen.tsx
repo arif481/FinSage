@@ -4,12 +4,14 @@ import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { MetricCard } from '@/components/common/MetricCard'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { budgetProgress, monthlyTrend, netBalance, spendingByCategory, totalExpenses } from '@/utils/finance'
 import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 
 export const DashboardScreen = () => {
   const { user } = useAuth()
+  const currency = useCurrency()
   const { budgets, categories, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
@@ -60,19 +62,19 @@ export const DashboardScreen = () => {
       <section className="metric-grid" aria-label="Key metrics">
         <MetricCard
           label="Net balance"
-          value={formatCurrency(netBalance(transactions))}
+          value={formatCurrency(netBalance(transactions), currency)}
           subtitle="Income minus expenses"
           tone={netBalance(transactions) < 0 ? 'danger' : 'good'}
         />
         <MetricCard
           label="Month expenses"
-          value={formatCurrency(currentMonthExpenses)}
-          subtitle={`Budget ${formatCurrency(currentBudgetLimit)}`}
+          value={formatCurrency(currentMonthExpenses, currency)}
+          subtitle={`Budget ${formatCurrency(currentBudgetLimit, currency)}`}
           tone={currentMonthExpenses > currentBudgetLimit && currentBudgetLimit > 0 ? 'warning' : 'neutral'}
         />
         <MetricCard
           label="Budget remaining"
-          value={formatCurrency(totalRemaining)}
+          value={formatCurrency(totalRemaining, currency)}
           subtitle={progress.length > 0 ? `${progress.length} active categories` : 'No budgets set'}
           tone={totalRemaining < 0 ? 'danger' : 'good'}
         />
@@ -94,7 +96,7 @@ export const DashboardScreen = () => {
               </div>
               <span className={transaction.type === 'expense' ? 'amount--expense' : 'amount--income'}>
                 {transaction.type === 'expense' ? '-' : '+'}
-                {formatCurrency(transaction.amount)}
+                {formatCurrency(transaction.amount, currency)}
               </span>
             </article>
           ))}

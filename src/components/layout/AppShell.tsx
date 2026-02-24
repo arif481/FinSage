@@ -18,7 +18,7 @@ export const AppShell = () => {
       <aside className="app-shell__sidebar" aria-label="Primary">
         <div>
           <h1 className="brand-mark">FinSage</h1>
-          <p className="brand-subtitle">Money clarity, every day.</p>
+          <p className="brand-subtitle">Money clarity with secure financial workflows.</p>
         </div>
 
         <nav className="app-shell__nav">
@@ -35,7 +35,16 @@ export const AppShell = () => {
         </nav>
 
         <div className="app-shell__profile">
+          <div className="app-shell__links">
+            <NavLink className="app-shell__helper-link" to="/about">
+              About
+            </NavLink>
+            <NavLink className="app-shell__helper-link" to="/support">
+              Support
+            </NavLink>
+          </div>
           <p className="app-shell__user">{user?.email}</p>
+          <p className="app-shell__credit">Developed by Arif</p>
           <button className="secondary-button" type="button" onClick={() => void signOutUser()}>
             Sign out
           </button>

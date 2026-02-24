@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
 import { mapStringArray, mapStringField } from '@/services/firestore/mappers'
 import { userDocPath } from '@/services/firestore/paths'
@@ -31,9 +31,7 @@ export const createUserProfile = async (
   )
 }
 
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
-  const snapshot = await getDoc(doc(db, userDocPath(uid)))
-
+const mapSnapshotToProfile = (snapshot: DocumentSnapshot): UserProfile | null => {
   if (!snapshot.exists()) {
     return null
   }
@@ -60,6 +58,20 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
           : DEFAULT_PREFERENCES.pushNotifications,
     },
   }
+}
+
+export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+  const snapshot = await getDoc(doc(db, userDocPath(uid)))
+  return mapSnapshotToProfile(snapshot)
+}
+
+export const subscribeUserProfile = (
+  uid: string,
+  callback: (profile: UserProfile | null) => void,
+): (() => void) => {
+  return onSnapshot(doc(db, userDocPath(uid)), (snapshot) => {
+    callback(mapSnapshotToProfile(snapshot))
+  })
 }
 
 export const updateUserPreferences = async (

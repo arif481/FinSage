@@ -2,12 +2,14 @@ import { SpendingPieChart } from '@/components/charts/SpendingPieChart'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { monthlyTrend, spendingByCategory } from '@/utils/finance'
 import { formatCurrency } from '@/utils/format'
 
 export const ReportsScreen = () => {
   const { user } = useAuth()
+  const currency = useCurrency()
   const { categories, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
@@ -55,7 +57,7 @@ export const ReportsScreen = () => {
         {topCategory ? (
           <p>
             Highest spending category: <strong>{topCategory.label}</strong> at{' '}
-            <strong>{formatCurrency(topCategory.value)}</strong>.
+            <strong>{formatCurrency(topCategory.value, currency)}</strong>.
           </p>
         ) : (
           <p>No spending data yet.</p>

@@ -1,34 +1,27 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
-import {
-  DEFAULT_PREFERENCES,
-  getUserProfile,
-  updateUserPreferences,
-} from '@/services/firestore/profile'
+import { useUserProfile } from '@/hooks/useUserProfile'
+import { DEFAULT_PREFERENCES, updateUserPreferences } from '@/services/firestore/profile'
 import { UserPreferences } from '@/types/finance'
 
 const currencyOptions = ['USD', 'EUR', 'GBP', 'INR', 'JPY']
 
 export const SettingsScreen = () => {
   const { user } = useAuth()
+  const { profile } = useUserProfile(user?.uid)
   const { highContrast, themeMode, toggleHighContrast, toggleThemeMode } = useTheme()
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES)
   const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user) {
+    if (!profile) {
       return
     }
 
-    void getUserProfile(user.uid).then((profile) => {
-      if (!profile) {
-        return
-      }
-
-      setPreferences(profile.preferences)
-    })
-  }, [user])
+    setPreferences(profile.preferences)
+  }, [profile])
 
   const savePreferences = async () => {
     if (!user) {
@@ -147,6 +140,22 @@ export const SettingsScreen = () => {
         </button>
 
         {status ? <p className="success-text">{status}</p> : null}
+      </section>
+
+      <section className="card stack">
+        <h3>Product and support</h3>
+        <p className="section-subtitle">FinSage is developed and maintained by Arif.</p>
+        <div className="button-row">
+          <Link className="secondary-button" to="/about">
+            About FinSage
+          </Link>
+          <Link className="secondary-button" to="/privacy">
+            Privacy policy
+          </Link>
+          <Link className="secondary-button" to="/support">
+            Support
+          </Link>
+        </div>
       </section>
     </main>
   )
