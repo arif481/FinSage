@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { CommandPalette } from '@/components/common/CommandPalette'
 
 const navItems = [
   { to: '/', label: 'Dashboard', short: 'DB' },
@@ -12,10 +13,12 @@ const navItems = [
 
 export const AppShell = () => {
   const { signOutUser, user } = useAuth()
+  const location = useLocation()
 
   return (
     <div className="app-shell">
-      <aside className="app-shell__sidebar" aria-label="Primary">
+      <CommandPalette />
+      <aside className="app-shell__sidebar glass-panel" aria-label="Primary">
         <div className="app-shell__brand-stack">
           <h1 className="brand-mark">FinSage</h1>
           <p className="brand-subtitle">
@@ -59,7 +62,7 @@ export const AppShell = () => {
         </div>
       </aside>
 
-      <div className="app-shell__main">
+      <div className="app-shell__main" key={location.pathname} style={{ animation: 'fade-up 400ms ease-out' }}>
         <Outlet />
       </div>
 

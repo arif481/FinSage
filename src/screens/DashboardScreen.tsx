@@ -3,6 +3,7 @@ import { SpendingPieChart } from '@/components/charts/SpendingPieChart'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { MetricCard } from '@/components/common/MetricCard'
+import { PredictiveForecastWidget } from '@/components/common/PredictiveForecastWidget'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
@@ -164,6 +165,8 @@ export const DashboardScreen = () => {
           tone={totalRemaining < 0 ? 'danger' : 'good'}
         />
       </section>
+
+      <PredictiveForecastWidget budgets={budgets} transactions={transactions} />
 
       <section className="grid-two">
         <div className="card stack">
