@@ -5,10 +5,16 @@ import { formatDate } from '@/utils/format'
 interface ChatWindowProps {
   loading?: boolean
   messages: ChatMessage[]
+  quickPrompts?: string[]
   onSendMessage: (prompt: string) => Promise<void>
 }
 
-export const ChatWindow = ({ loading, messages, onSendMessage }: ChatWindowProps) => {
+export const ChatWindow = ({
+  loading,
+  messages,
+  quickPrompts = [],
+  onSendMessage,
+}: ChatWindowProps) => {
   const [value, setValue] = useState('')
 
   const sortedMessages = useMemo(
@@ -37,7 +43,30 @@ export const ChatWindow = ({ loading, messages, onSendMessage }: ChatWindowProps
         </p>
       </header>
 
+      {quickPrompts.length > 0 ? (
+        <div className="chip-row" aria-label="Suggested prompts">
+          {quickPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              className="chip-button"
+              disabled={loading}
+              type="button"
+              onClick={() => {
+                void onSendMessage(prompt)
+              }}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div aria-live="polite" className="chat-messages">
+        {sortedMessages.length === 0 ? (
+          <p className="empty-state">
+            Ask your first question. Example: "How much did I spend on groceries last month?"
+          </p>
+        ) : null}
         {sortedMessages.map((message) => (
           <article
             key={message.id}
@@ -47,6 +76,7 @@ export const ChatWindow = ({ loading, messages, onSendMessage }: ChatWindowProps
             <small>{formatDate(message.timestamp)}</small>
           </article>
         ))}
+        {loading ? <p className="info-text">Assistant is analyzing your data...</p> : null}
       </div>
 
       <form className="chat-input-row" onSubmit={(event) => void handleSubmit(event)}>

@@ -21,7 +21,9 @@ export const TransactionTable = ({
   onEdit,
 }: TransactionTableProps) => {
   if (transactions.length === 0) {
-    return <p className="empty-state">No transactions yet. Add your first expense to get started.</p>
+    return (
+      <p className="empty-state">No transactions yet. Add your first expense to get started.</p>
+    )
   }
 
   return (
@@ -45,7 +47,11 @@ export const TransactionTable = ({
                 <tr key={transaction.id}>
                   <td>{formatDate(transaction.date)}</td>
                   <td>{transaction.description}</td>
-                  <td>{resolveCategoryName(categories, transaction.categoryId)}</td>
+                  <td>
+                    <span className="table-category">
+                      {resolveCategoryName(categories, transaction.categoryId)}
+                    </span>
+                  </td>
                   <td className={isExpense ? 'amount amount--expense' : 'amount amount--income'}>
                     {isExpense ? '-' : '+'}
                     {formatCurrency(transaction.amount, currency)}

@@ -6,7 +6,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { classifyExpense } from '@/services/ai/assistant'
-import { downloadCsv, parseTransactionsCsv, toTransactionsCsv } from '@/services/csv/transactionsCsv'
+import {
+  downloadCsv,
+  parseTransactionsCsv,
+  toTransactionsCsv,
+} from '@/services/csv/transactionsCsv'
 import {
   TransactionInput,
   addTransaction,
@@ -15,6 +19,8 @@ import {
   updateTransaction,
 } from '@/services/firestore/transactions'
 import { FinanceTransaction } from '@/types/finance'
+import { totalExpenses, totalIncome } from '@/utils/finance'
+import { formatCurrency, toMonthKey } from '@/utils/format'
 
 const parseTags = (tagsRaw?: string): string[] => {
   if (!tagsRaw) {
@@ -59,6 +65,15 @@ export const TransactionsScreen = () => {
       return matchesSearch && matchesCategory
     })
   }, [search, selectedCategory, transactions])
+
+  const currentMonth = toMonthKey(new Date().toISOString())
+  const currentMonthTransactions = transactions.filter(
+    (transaction) => toMonthKey(transaction.date) === currentMonth,
+  )
+  const monthExpense = totalExpenses(currentMonthTransactions)
+  const monthIncome = totalIncome(currentMonthTransactions)
+  const filteredExpense = totalExpenses(filteredTransactions)
+  const filteredIncome = totalIncome(filteredTransactions)
 
   const handleSubmit = async (values: TransactionFormValues) => {
     if (!user) {
@@ -106,7 +121,9 @@ export const TransactionsScreen = () => {
 
       const resolvedCategory =
         categories.find((category) => category.id === suggestion.categoryId)?.id ??
-        categories.find((category) => category.name.toLowerCase() === suggestion.categoryId.toLowerCase())?.id ??
+        categories.find(
+          (category) => category.name.toLowerCase() === suggestion.categoryId.toLowerCase(),
+        )?.id ??
         'other'
 
       setSuggestedCategoryId(resolvedCategory)
@@ -143,7 +160,8 @@ export const TransactionsScreen = () => {
     <main className="screen stack">
       {error ? (
         <p className="error-text">
-          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you
+          are signed in.
         </p>
       ) : null}
       <header className="screen-header">
@@ -152,6 +170,25 @@ export const TransactionsScreen = () => {
           <p className="section-subtitle">Add, edit, and categorize daily expenses in seconds.</p>
         </div>
       </header>
+
+      <section className="insight-strip">
+        <article className="insight-strip__item">
+          <small>Month income</small>
+          <strong>{formatCurrency(monthIncome, currency)}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>Month expense</small>
+          <strong>{formatCurrency(monthExpense, currency)}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>Filtered transactions</small>
+          <strong>{filteredTransactions.length}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>Filtered net</small>
+          <strong>{formatCurrency(filteredIncome - filteredExpense, currency)}</strong>
+        </article>
+      </section>
 
       <TransactionForm
         categories={categories}
@@ -167,7 +204,7 @@ export const TransactionsScreen = () => {
         onSubmit={handleSubmit}
       />
 
-      {aiStatus ? <p className="info-text">{aiStatus}</p> : null}
+      {aiStatus ? <p className="info-text info-text--highlight">{aiStatus}</p> : null}
 
       <CsvImportExport
         disabled={loading}

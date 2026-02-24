@@ -14,6 +14,7 @@ export const SettingsScreen = () => {
   const { highContrast, themeMode, toggleHighContrast, toggleThemeMode } = useTheme()
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES)
   const [status, setStatus] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile) {
@@ -28,12 +29,19 @@ export const SettingsScreen = () => {
       return
     }
 
-    await updateUserPreferences(user.uid, {
-      ...preferences,
-      highContrast,
-      themeMode,
-    })
-    setStatus('Preferences saved.')
+    setStatus(null)
+    setError(null)
+
+    try {
+      await updateUserPreferences(user.uid, {
+        ...preferences,
+        highContrast,
+        themeMode,
+      })
+      setStatus('Preferences saved.')
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save preferences.')
+    }
   }
 
   return (
@@ -41,9 +49,30 @@ export const SettingsScreen = () => {
       <header className="screen-header">
         <div>
           <h2>Settings</h2>
-          <p className="section-subtitle">Personalize your experience and notification preferences.</p>
+          <p className="section-subtitle">
+            Personalize your experience and notification preferences.
+          </p>
         </div>
       </header>
+
+      <section className="insight-strip">
+        <article className="insight-strip__item">
+          <small>Signed in as</small>
+          <strong>{user?.email ?? 'Unknown user'}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>Theme mode</small>
+          <strong>{themeMode === 'dark' ? 'Dark' : 'Light'}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>High contrast</small>
+          <strong>{highContrast ? 'Enabled' : 'Disabled'}</strong>
+        </article>
+        <article className="insight-strip__item">
+          <small>Currency</small>
+          <strong>{preferences.currency}</strong>
+        </article>
+      </section>
 
       <section className="card stack">
         <h3>Appearance</h3>
@@ -140,6 +169,7 @@ export const SettingsScreen = () => {
         </button>
 
         {status ? <p className="success-text">{status}</p> : null}
+        {error ? <p className="error-text">{error}</p> : null}
       </section>
 
       <section className="card stack">

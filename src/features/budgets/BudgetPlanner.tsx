@@ -69,6 +69,7 @@ export const BudgetPlanner = ({
         const spent = categoryProgress?.spent ?? 0
         const limit = categoryProgress?.limit ?? limits[category.id] ?? 0
         const percent = categoryProgress?.percent ?? 0
+        const statusTone = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'good'
 
         return (
           <div key={category.id} className="budget-row">
@@ -93,13 +94,26 @@ export const BudgetPlanner = ({
                   }))
                 }}
               />
-              <progress aria-label={`${category.name} usage`} max={100} value={Math.min(percent, 100)} />
+              <div className="budget-row__progress">
+                <progress
+                  aria-label={`${category.name} usage`}
+                  className={`budget-progress budget-progress--${statusTone}`}
+                  max={100}
+                  value={Math.min(percent, 100)}
+                />
+                <small>{Math.round(percent)}% used</small>
+              </div>
             </div>
           </div>
         )
       })}
 
-      <button className="primary-button" disabled={saving} type="button" onClick={() => void handleSave()}>
+      <button
+        className="primary-button"
+        disabled={saving}
+        type="button"
+        onClick={() => void handleSave()}
+      >
         Save monthly budgets
       </button>
     </div>

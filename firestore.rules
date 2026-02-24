@@ -9,38 +9,305 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function userDocExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId));
+    }
+
     function isCollaborator(userId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/users/$(userId))
-        && request.auth.uid in get(/databases/$(database)/documents/users/$(userId)).data.collaborators;
+        && userDocExists(userId)
+        && userDoc(userId).data.collaborators is list
+        && request.auth.uid in userDoc(userId).data.collaborators;
+    }
+
+    function canReadUserData(userId) {
+      return isOwner(userId) || isCollaborator(userId);
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).changedKeys();
+    }
+
+    function validShortString(value, maxLen) {
+      return value is string && value.size() > 0 && value.size() <= maxLen;
+    }
+
+    function validStringList(value, maxItems) {
+      return value is list && value.size() <= maxItems;
+    }
+
+    function validTransactionType(value) {
+      return value == 'income' || value == 'expense';
+    }
+
+    function validTimestamp(value) {
+      return value is timestamp;
+    }
+
+    function validPreferences(value) {
+      return value is map
+        && value.keys().hasOnly([
+          'currency',
+          'themeMode',
+          'highContrast',
+          'emailNotifications',
+          'pushNotifications'
+        ])
+        && validShortString(value.currency, 8)
+        && (value.themeMode == 'light' || value.themeMode == 'dark')
+        && value.highContrast is bool
+        && value.emailNotifications is bool
+        && value.pushNotifications is bool;
+    }
+
+    function validUserProfileCreate() {
+      return request.resource.data.keys().hasOnly([
+          'email',
+          'displayName',
+          'collaborators',
+          'preferences',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'email',
+          'displayName',
+          'collaborators',
+          'preferences',
+          'createdAt',
+          'updatedAt'
+        ])
+        && validShortString(request.resource.data.email, 320)
+        && validShortString(request.resource.data.displayName, 80)
+        && validStringList(request.resource.data.collaborators, 20)
+        && validPreferences(request.resource.data.preferences)
+        && validTimestamp(request.resource.data.createdAt)
+        && validTimestamp(request.resource.data.updatedAt);
+    }
+
+    function validUserProfileUpdate() {
+      return changedKeys().hasOnly([
+          'email',
+          'displayName',
+          'collaborators',
+          'preferences',
+          'updatedAt'
+        ])
+        && changedKeys().hasAny(['updatedAt'])
+        && validTimestamp(request.resource.data.updatedAt)
+        && (
+          !changedKeys().hasAny(['email'])
+          || validShortString(request.resource.data.email, 320)
+        )
+        && (
+          !changedKeys().hasAny(['displayName'])
+          || validShortString(request.resource.data.displayName, 80)
+        )
+        && (
+          !changedKeys().hasAny(['collaborators'])
+          || validStringList(request.resource.data.collaborators, 20)
+        )
+        && (
+          !changedKeys().hasAny(['preferences'])
+          || validPreferences(request.resource.data.preferences)
+        );
+    }
+
+    function validTransactionCreate() {
+      return request.resource.data.keys().hasOnly([
+          'amount',
+          'categoryId',
+          'date',
+          'description',
+          'tags',
+          'type',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'amount',
+          'categoryId',
+          'date',
+          'description',
+          'tags',
+          'type',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && validShortString(request.resource.data.categoryId, 64)
+        && (request.resource.data.date is string || request.resource.data.date is timestamp)
+        && validShortString(request.resource.data.description, 240)
+        && validStringList(request.resource.data.tags, 12)
+        && validTransactionType(request.resource.data.type)
+        && validTimestamp(request.resource.data.createdAt)
+        && validTimestamp(request.resource.data.updatedAt);
+    }
+
+    function validTransactionUpdate() {
+      return changedKeys().hasOnly([
+          'amount',
+          'categoryId',
+          'date',
+          'description',
+          'tags',
+          'type',
+          'updatedAt'
+        ])
+        && changedKeys().hasAny(['updatedAt'])
+        && validTimestamp(request.resource.data.updatedAt)
+        && (
+          !changedKeys().hasAny(['amount'])
+          || (
+            request.resource.data.amount is number
+            && request.resource.data.amount > 0
+          )
+        )
+        && (
+          !changedKeys().hasAny(['categoryId'])
+          || validShortString(request.resource.data.categoryId, 64)
+        )
+        && (
+          !changedKeys().hasAny(['date'])
+          || (request.resource.data.date is string || request.resource.data.date is timestamp)
+        )
+        && (
+          !changedKeys().hasAny(['description'])
+          || validShortString(request.resource.data.description, 240)
+        )
+        && (
+          !changedKeys().hasAny(['tags'])
+          || validStringList(request.resource.data.tags, 12)
+        )
+        && (
+          !changedKeys().hasAny(['type'])
+          || validTransactionType(request.resource.data.type)
+        );
+    }
+
+    function validCategoryCreate() {
+      return request.resource.data.keys().hasOnly([
+          'name',
+          'icon',
+          'color',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['name', 'icon', 'color', 'createdAt'])
+        && validShortString(request.resource.data.name, 60)
+        && validShortString(request.resource.data.icon, 40)
+        && validShortString(request.resource.data.color, 32)
+        && validTimestamp(request.resource.data.createdAt)
+        && (
+          !('updatedAt' in request.resource.data)
+          || validTimestamp(request.resource.data.updatedAt)
+        );
+    }
+
+    function validCategoryUpdate() {
+      return changedKeys().hasOnly(['name', 'icon', 'color', 'updatedAt'])
+        && changedKeys().hasAny(['updatedAt'])
+        && validTimestamp(request.resource.data.updatedAt)
+        && (
+          !changedKeys().hasAny(['name'])
+          || validShortString(request.resource.data.name, 60)
+        )
+        && (
+          !changedKeys().hasAny(['icon'])
+          || validShortString(request.resource.data.icon, 40)
+        )
+        && (
+          !changedKeys().hasAny(['color'])
+          || validShortString(request.resource.data.color, 32)
+        );
+    }
+
+    function validBudgetCreate() {
+      return request.resource.data.keys().hasOnly([
+          'categoryId',
+          'month',
+          'limit',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['categoryId', 'month', 'limit', 'updatedAt'])
+        && validShortString(request.resource.data.categoryId, 64)
+        && request.resource.data.month is string
+        && request.resource.data.month.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.limit is number
+        && request.resource.data.limit > 0
+        && validTimestamp(request.resource.data.updatedAt);
+    }
+
+    function validBudgetUpdate() {
+      return changedKeys().hasOnly(['categoryId', 'month', 'limit', 'updatedAt'])
+        && changedKeys().hasAny(['updatedAt'])
+        && validTimestamp(request.resource.data.updatedAt)
+        && (
+          !changedKeys().hasAny(['categoryId'])
+          || validShortString(request.resource.data.categoryId, 64)
+        )
+        && (
+          !changedKeys().hasAny(['month'])
+          || (
+            request.resource.data.month is string
+            && request.resource.data.month.matches('^[0-9]{4}-[0-9]{2}$')
+          )
+        )
+        && (
+          !changedKeys().hasAny(['limit'])
+          || (
+            request.resource.data.limit is number
+            && request.resource.data.limit > 0
+          )
+        );
+    }
+
+    function validChatMessage() {
+      return request.resource.data.keys().hasOnly(['role', 'content', 'timestamp'])
+        && (request.resource.data.role == 'user' || request.resource.data.role == 'assistant')
+        && validShortString(request.resource.data.content, 5000)
+        && validTimestamp(request.resource.data.timestamp);
     }
 
     match /users/{userId} {
-      allow create: if isOwner(userId);
-      allow read: if isOwner(userId) || isCollaborator(userId);
-      allow update, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && validUserProfileCreate();
+      allow read: if canReadUserData(userId);
+      allow update: if isOwner(userId) && validUserProfileUpdate();
+      allow delete: if isOwner(userId);
 
       match /transactions/{txnId} {
-        allow read: if isOwner(userId) || isCollaborator(userId);
-        allow write: if isOwner(userId) || isCollaborator(userId);
+        allow read: if canReadUserData(userId);
+        allow create: if canReadUserData(userId) && validTransactionCreate();
+        allow update: if canReadUserData(userId) && validTransactionUpdate();
+        allow delete: if canReadUserData(userId);
       }
 
       match /categories/{categoryId} {
-        allow read: if isOwner(userId) || isCollaborator(userId);
-        allow write: if isOwner(userId);
+        allow read: if canReadUserData(userId);
+        allow create: if isOwner(userId) && validCategoryCreate();
+        allow update: if isOwner(userId) && validCategoryUpdate();
+        allow delete: if isOwner(userId);
       }
 
       match /budgets/{budgetId} {
-        allow read: if isOwner(userId) || isCollaborator(userId);
-        allow write: if isOwner(userId) || isCollaborator(userId);
+        allow read: if canReadUserData(userId);
+        allow create: if canReadUserData(userId) && validBudgetCreate();
+        allow update: if canReadUserData(userId) && validBudgetUpdate();
+        allow delete: if canReadUserData(userId);
       }
 
       match /chatHistory/{messageId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && validChatMessage();
       }
 
       match /insights/{insightId} {
-        allow read: if isOwner(userId) || isCollaborator(userId);
+        allow read: if canReadUserData(userId);
         allow write: if isOwner(userId);
       }
     }
