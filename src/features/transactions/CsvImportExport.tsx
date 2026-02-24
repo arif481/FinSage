@@ -25,27 +25,36 @@ export const CsvImportExport = ({
   }
 
   return (
-    <div className="card button-row">
-      <label className="secondary-button" htmlFor="csv-import">
-        Import CSV
-      </label>
-      <input
-        accept=".csv,text/csv"
-        disabled={disabled}
-        id="csv-import"
-        style={{ display: 'none' }}
-        type="file"
-        onChange={handleImport}
-      />
+    <div className="card stack">
+      <div>
+        <h3>Data transfer</h3>
+        <p className="section-subtitle">
+          Import historical transactions or export filtered records for backup.
+        </p>
+      </div>
 
-      <button
-        className="secondary-button"
-        disabled={disabled || transactions.length === 0}
-        type="button"
-        onClick={() => onExport(transactions)}
-      >
-        Export CSV
-      </button>
+      <div className="button-row">
+        <label className="secondary-button" htmlFor="csv-import">
+          Import CSV
+        </label>
+        <input
+          accept=".csv,text/csv"
+          disabled={disabled}
+          id="csv-import"
+          style={{ display: 'none' }}
+          type="file"
+          onChange={handleImport}
+        />
+
+        <button
+          className="secondary-button"
+          disabled={disabled || transactions.length === 0}
+          type="button"
+          onClick={() => onExport(transactions)}
+        >
+          Export CSV
+        </button>
+      </div>
     </div>
   )
 }
