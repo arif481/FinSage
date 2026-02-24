@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.4.0...finsage-web-v0.5.0) (2026-02-24)
+
+
+### Features
+
+* Deploy FinSage to GitHub Pages ([#6](https://github.com/arif481/FinSage/issues/6)) ([e4198cc](https://github.com/arif481/FinSage/commit/e4198cce2abe56af5a5202fb11d9401a7942b9ac))
+
 ## [0.4.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.3.1...finsage-web-v0.4.0) (2026-02-24)
 
 
