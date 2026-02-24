@@ -7,6 +7,7 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY')
 const REGION = 'us-central1'
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
 const GEMINI_API_BASE = process.env.GEMINI_API_BASE ?? 'https://generativelanguage.googleapis.com/v1beta'
+const ENFORCE_APPCHECK = process.env.ENFORCE_APPCHECK === 'true'
 
 interface ClassificationResult {
   categoryId: string
@@ -63,7 +64,7 @@ interface ModelClassification {
 
 const callableOptions = {
   cors: true,
-  enforceAppCheck: true,
+  enforceAppCheck: ENFORCE_APPCHECK,
   region: REGION,
   secrets: [geminiApiKey],
 }
@@ -174,69 +175,12 @@ const normalizeChatMessages = (rawValue: unknown): ChatMessage[] => {
   return messages.slice(-16)
 }
 
-const chooseCategoryId = (categories: CategoryOption[], keywords: string[], fallback: string): string => {
-  for (const category of categories) {
-    const haystack = `${category.id} ${category.name}`.toLowerCase()
-    if (keywords.some((keyword) => haystack.includes(keyword))) {
-      return category.id
-    }
-  }
-
-  return fallback
-}
-
-const fallbackClassification = (description: string, categories: CategoryOption[]): ClassificationResult => {
-  const text = description.toLowerCase()
+const fallbackClassification = (categories: CategoryOption[]): ClassificationResult => {
   const defaultCategory = categories.find((category) => category.id === 'other')?.id ?? categories[0]?.id ?? 'other'
-
-  if (text.includes('rent') || text.includes('lease')) {
-    return {
-      categoryId: chooseCategoryId(categories, ['rent', 'housing', 'home'], defaultCategory),
-      confidence: 0.88,
-      tags: ['housing'],
-    }
-  }
-
-  if (text.includes('uber') || text.includes('bus') || text.includes('gas') || text.includes('fuel')) {
-    return {
-      categoryId: chooseCategoryId(categories, ['transport', 'travel', 'commute', 'car'], defaultCategory),
-      confidence: 0.76,
-      tags: ['travel'],
-    }
-  }
-
-  if (
-    text.includes('coffee') ||
-    text.includes('restaurant') ||
-    text.includes('lunch') ||
-    text.includes('dinner')
-  ) {
-    return {
-      categoryId: chooseCategoryId(categories, ['dining', 'food', 'restaurant'], defaultCategory),
-      confidence: 0.72,
-      tags: ['food'],
-    }
-  }
-
-  if (text.includes('grocery') || text.includes('market') || text.includes('walmart')) {
-    return {
-      categoryId: chooseCategoryId(categories, ['grocer', 'food'], defaultCategory),
-      confidence: 0.82,
-      tags: ['necessities'],
-    }
-  }
-
-  if (text.includes('salary') || text.includes('payroll') || text.includes('paycheck')) {
-    return {
-      categoryId: chooseCategoryId(categories, ['salary', 'income', 'pay'], defaultCategory),
-      confidence: 0.86,
-      tags: ['income'],
-    }
-  }
 
   return {
     categoryId: defaultCategory,
-    confidence: 0.45,
+    confidence: 0,
     tags: [],
   }
 }
@@ -351,7 +295,7 @@ export const classifyExpense = onCall(callableOptions, async (request) => {
   }
 
   const categories = normalizeCategoryOptions((request.data as { categories?: unknown }).categories)
-  const fallback = fallbackClassification(description, categories)
+  const fallback = fallbackClassification(categories)
 
   logger.info('classifyExpense request', {
     categoryCount: categories.length,
