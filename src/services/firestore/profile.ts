@@ -1,4 +1,13 @@
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc, type DocumentSnapshot } from 'firebase/firestore'
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  type DocumentSnapshot,
+  type FirestoreError,
+} from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
 import { mapStringArray, mapStringField } from '@/services/firestore/mappers'
 import { userDocPath } from '@/services/firestore/paths'
@@ -68,10 +77,17 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 export const subscribeUserProfile = (
   uid: string,
   callback: (profile: UserProfile | null) => void,
+  onError?: (error: FirestoreError) => void,
 ): (() => void) => {
-  return onSnapshot(doc(db, userDocPath(uid)), (snapshot) => {
-    callback(mapSnapshotToProfile(snapshot))
-  })
+  return onSnapshot(
+    doc(db, userDocPath(uid)),
+    (snapshot) => {
+      callback(mapSnapshotToProfile(snapshot))
+    },
+    (error) => {
+      onError?.(error)
+    },
+  )
 }
 
 export const updateUserPreferences = async (

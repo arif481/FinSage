@@ -10,7 +10,7 @@ import { toMonthKey } from '@/utils/format'
 export const BudgetsScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { budgets, categories, loading, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
   const [month, setMonth] = useState(toMonthKey(new Date().toISOString()))
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -34,6 +34,11 @@ export const BudgetsScreen = () => {
 
   return (
     <main className="screen stack">
+      {error ? (
+        <p className="error-text">
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+        </p>
+      ) : null}
       <header className="screen-header">
         <div>
           <h2>Budget planner</h2>

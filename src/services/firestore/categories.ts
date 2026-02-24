@@ -9,6 +9,7 @@ import {
   writeBatch,
   doc,
   getDocs,
+  type FirestoreError,
 } from 'firebase/firestore'
 import { DEFAULT_CATEGORIES } from '@/constants/defaultCategories'
 import { db } from '@/services/firebase/config'
@@ -28,15 +29,22 @@ const toCategory = (id: string, data: Record<string, unknown>): Category => ({
 export const subscribeCategories = (
   uid: string,
   callback: (categories: Category[]) => void,
+  onError?: (error: FirestoreError) => void,
 ): (() => void) => {
   const categoriesQuery = query(
     collection(db, userSubcollectionPath(uid, collectionName)),
     orderBy('name', 'asc'),
   )
 
-  return onSnapshot(categoriesQuery, (snapshot) => {
-    callback(snapshot.docs.map((docSnapshot) => toCategory(docSnapshot.id, docSnapshot.data())))
-  })
+  return onSnapshot(
+    categoriesQuery,
+    (snapshot) => {
+      callback(snapshot.docs.map((docSnapshot) => toCategory(docSnapshot.id, docSnapshot.data())))
+    },
+    (error) => {
+      onError?.(error)
+    },
+  )
 }
 
 export const addCategory = async (

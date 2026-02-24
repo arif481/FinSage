@@ -10,9 +10,10 @@ import { toMonthKey } from '@/utils/format'
 
 export const ChatbotScreen = () => {
   const { user } = useAuth()
-  const { budgets, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, error, transactions } = useFinanceCollections(user?.uid)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [sending, setSending] = useState(false)
+  const [chatError, setChatError] = useState<string | null>(null)
   const currentMonth = toMonthKey(new Date().toISOString())
 
   useEffect(() => {
@@ -20,7 +21,13 @@ export const ChatbotScreen = () => {
       return
     }
 
-    return subscribeChatHistory(user.uid, setMessages)
+    return subscribeChatHistory(
+      user.uid,
+      setMessages,
+      (listenerError) => {
+        setChatError(listenerError.message)
+      },
+    )
   }, [user])
 
   const contextText = useMemo(() => {
@@ -65,6 +72,12 @@ export const ChatbotScreen = () => {
 
   return (
     <main className="screen stack">
+      {error ? (
+        <p className="error-text">
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+        </p>
+      ) : null}
+      {chatError ? <p className="error-text">Chat history error: {chatError}</p> : null}
       <header className="screen-header">
         <div>
           <h2>AI assistant</h2>
