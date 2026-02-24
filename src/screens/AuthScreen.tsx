@@ -32,10 +32,27 @@ export const AuthScreen = () => {
   return (
     <main className="auth-layout">
       <section className="auth-card">
+        <p className="kicker">Secure onboarding</p>
         <h1>FinSage</h1>
         <p className="section-subtitle">
-          Production-grade personal finance platform for budgets, transactions, reporting, and AI assistance.
+          Production-grade personal finance platform for budgets, transactions, reporting, and AI
+          assistance.
         </p>
+
+        <div className="auth-trust-grid" aria-label="Platform trust highlights">
+          <article>
+            <small>Security</small>
+            <strong>Firebase Auth + Rules</strong>
+          </article>
+          <article>
+            <small>Sync</small>
+            <strong>Realtime Firestore</strong>
+          </article>
+          <article>
+            <small>Insights</small>
+            <strong>Gemini assistant</strong>
+          </article>
+        </div>
 
         <div className="toggle-row" role="tablist" aria-label="Authentication mode">
           <button

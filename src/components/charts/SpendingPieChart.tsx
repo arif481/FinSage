@@ -34,6 +34,12 @@ export const SpendingPieChart = ({ data }: SpendingPieChartProps) => {
             ))}
           </Pie>
           <Tooltip
+            contentStyle={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: '0.75rem',
+              color: 'var(--text)',
+            }}
             formatter={(value: number | string | undefined) => {
               if (typeof value === 'number') {
                 return value.toFixed(2)

@@ -6,7 +6,14 @@ import { MetricCard } from '@/components/common/MetricCard'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
-import { budgetProgress, monthlyTrend, netBalance, spendingByCategory, totalExpenses } from '@/utils/finance'
+import {
+  budgetProgress,
+  monthlyTrend,
+  netBalance,
+  spendingByCategory,
+  totalExpenses,
+  totalIncome,
+} from '@/utils/finance'
 import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 
 export const DashboardScreen = () => {
@@ -19,15 +26,18 @@ export const DashboardScreen = () => {
   }
 
   const currentMonth = toMonthKey(new Date().toISOString())
-  const currentMonthExpenses = totalExpenses(
-    transactions.filter((transaction) => toMonthKey(transaction.date) === currentMonth),
+  const monthTransactions = transactions.filter(
+    (transaction) => toMonthKey(transaction.date) === currentMonth,
   )
+  const currentMonthExpenses = totalExpenses(monthTransactions)
+  const currentMonthIncome = totalIncome(monthTransactions)
   const currentBudgetLimit = budgets
     .filter((budget) => budget.month === currentMonth)
     .reduce((sum, budget) => sum + budget.limit, 0)
 
   const progress = budgetProgress(budgets, transactions, currentMonth)
   const totalRemaining = progress.reduce((sum, item) => sum + item.remaining, 0)
+  const overspentCategories = progress.filter((item) => item.remaining < 0)
   const pieData = spendingByCategory(transactions)
     .map((item) => {
       const category = categories.find((entry) => entry.id === item.categoryId)
@@ -40,29 +50,95 @@ export const DashboardScreen = () => {
     })
     .sort((a, b) => b.value - a.value)
   const trendData = monthlyTrend(transactions)
+  const savingsRate =
+    currentMonthIncome > 0
+      ? ((currentMonthIncome - currentMonthExpenses) / currentMonthIncome) * 100
+      : null
+  const topCategory = pieData[0]
+
+  const signals: string[] = []
+
+  if (currentBudgetLimit === 0) {
+    signals.push('Set at least one monthly budget category to unlock overspending alerts.')
+  }
+
+  if (overspentCategories.length > 0) {
+    signals.push(`${overspentCategories.length} categories are currently over budget.`)
+  }
+
+  if (savingsRate !== null && savingsRate < 10) {
+    signals.push('Savings rate is below 10%. Consider reducing variable expenses this week.')
+  }
+
+  if (signals.length === 0) {
+    signals.push('Budget and spending are stable. Keep logging transactions for better forecasts.')
+  }
 
   return (
     <main className="screen stack">
       {error ? (
         <p className="error-text">
-          Data access error: {error}. Confirm Firestore rules are deployed for your project and you are signed in.
+          Data access error: {error}. Confirm Firestore rules are deployed for your project and you
+          are signed in.
         </p>
       ) : null}
-      <header className="screen-header">
-        <div>
-          <h2>Dashboard</h2>
-          <p className="section-subtitle">Track spending, budgets, and trends at a glance.</p>
+
+      <section className="hero-panel">
+        <div className="hero-panel__head">
+          <div>
+            <p className="kicker">Financial cockpit</p>
+            <h2>Dashboard</h2>
+            <p className="section-subtitle">Track spending, budgets, and trends at a glance.</p>
+          </div>
+          <div className="button-row">
+            <Link className="secondary-button" to="/budgets">
+              Set budget
+            </Link>
+            <Link className="primary-button" to="/transactions">
+              Add expense
+            </Link>
+          </div>
         </div>
 
-        <div className="button-row">
-          <Link className="secondary-button" to="/budgets">
-            Set budget
-          </Link>
-          <Link className="primary-button" to="/transactions">
-            Add expense
-          </Link>
+        <div className="hero-panel__meta">
+          <article className="hero-stat">
+            <small>Current month income</small>
+            <strong>{formatCurrency(currentMonthIncome, currency)}</strong>
+          </article>
+          <article className="hero-stat">
+            <small>Current month expense</small>
+            <strong>{formatCurrency(currentMonthExpenses, currency)}</strong>
+          </article>
+          <article className="hero-stat">
+            <small>Savings rate</small>
+            <strong>
+              {savingsRate === null ? 'No income data' : `${Math.round(savingsRate)}%`}
+            </strong>
+          </article>
+          <article className="hero-stat">
+            <small>Top spend category</small>
+            <strong>{topCategory ? topCategory.label : 'No data yet'}</strong>
+          </article>
+        </div>
+      </section>
+
+      <header className="screen-header">
+        <div>
+          <h3>Health signals</h3>
+          <p className="section-subtitle">
+            Actionable checkpoints generated from your current month activity.
+          </p>
         </div>
       </header>
+
+      <section className="card stack">
+        {signals.map((signal) => (
+          <div key={signal} className="signal-item">
+            <span className="signal-item__dot" aria-hidden="true" />
+            <p>{signal}</p>
+          </div>
+        ))}
+      </section>
 
       <section className="metric-grid" aria-label="Key metrics">
         <MetricCard
@@ -75,7 +151,11 @@ export const DashboardScreen = () => {
           label="Month expenses"
           value={formatCurrency(currentMonthExpenses, currency)}
           subtitle={`Budget ${formatCurrency(currentBudgetLimit, currency)}`}
-          tone={currentMonthExpenses > currentBudgetLimit && currentBudgetLimit > 0 ? 'warning' : 'neutral'}
+          tone={
+            currentMonthExpenses > currentBudgetLimit && currentBudgetLimit > 0
+              ? 'warning'
+              : 'neutral'
+          }
         />
         <MetricCard
           label="Budget remaining"
@@ -99,13 +179,17 @@ export const DashboardScreen = () => {
                 <strong>{transaction.description}</strong>
                 <small>{formatDate(transaction.date)}</small>
               </div>
-              <span className={transaction.type === 'expense' ? 'amount--expense' : 'amount--income'}>
+              <span
+                className={transaction.type === 'expense' ? 'amount--expense' : 'amount--income'}
+              >
                 {transaction.type === 'expense' ? '-' : '+'}
                 {formatCurrency(transaction.amount, currency)}
               </span>
             </article>
           ))}
-          {transactions.length === 0 ? <p className="empty-state">No data yet - click Add expense.</p> : null}
+          {transactions.length === 0 ? (
+            <p className="empty-state">No data yet - click Add expense.</p>
+          ) : null}
         </div>
       </section>
 

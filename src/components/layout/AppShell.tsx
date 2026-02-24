@@ -2,12 +2,12 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/transactions', label: 'Transactions' },
-  { to: '/budgets', label: 'Budgets' },
-  { to: '/chat', label: 'Chat' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Dashboard', short: 'DB' },
+  { to: '/transactions', label: 'Transactions', short: 'TX' },
+  { to: '/budgets', label: 'Budgets', short: 'BG' },
+  { to: '/chat', label: 'Assistant', short: 'AI' },
+  { to: '/reports', label: 'Reports', short: 'RP' },
+  { to: '/settings', label: 'Settings', short: 'ST' },
 ]
 
 export const AppShell = () => {
@@ -16,20 +16,28 @@ export const AppShell = () => {
   return (
     <div className="app-shell">
       <aside className="app-shell__sidebar" aria-label="Primary">
-        <div>
+        <div className="app-shell__brand-stack">
           <h1 className="brand-mark">FinSage</h1>
-          <p className="brand-subtitle">Money clarity with secure financial workflows.</p>
+          <p className="brand-subtitle">
+            Financial command center for secure daily money decisions.
+          </p>
+          <p className="app-shell__status">Live workspace</p>
         </div>
 
         <nav className="app-shell__nav">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
-              className={({ isActive }) => (isActive ? 'app-shell__nav-link active' : 'app-shell__nav-link')}
+              className={({ isActive }) =>
+                isActive ? 'app-shell__nav-link active' : 'app-shell__nav-link'
+              }
               to={item.to}
               end={item.to === '/'}
             >
-              {item.label}
+              <span aria-hidden="true" className="app-shell__nav-badge">
+                {item.short}
+              </span>
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -59,11 +67,14 @@ export const AppShell = () => {
         {navItems.map((item) => (
           <NavLink
             key={item.to}
-            className={({ isActive }) => (isActive ? 'app-shell__mobile-link active' : 'app-shell__mobile-link')}
+            className={({ isActive }) =>
+              isActive ? 'app-shell__mobile-link active' : 'app-shell__mobile-link'
+            }
             to={item.to}
             end={item.to === '/'}
           >
-            {item.label}
+            <span aria-hidden="true">{item.short}</span>
+            <small>{item.label}</small>
           </NavLink>
         ))}
       </nav>
