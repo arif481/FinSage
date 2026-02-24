@@ -1,5 +1,4 @@
-import { httpsCallable } from 'firebase/functions'
-import { functions, isFirebaseConfigured } from '@/services/firebase/config'
+
 
 export interface ClassificationResult {
   categoryId: string
@@ -17,9 +16,7 @@ interface ChatRequestMessage {
   content: string
 }
 
-interface ChatResponse {
-  answer: string
-}
+
 
 const fallbackClassify = (categories: CategoryOption[]): ClassificationResult => {
   const fallbackCategory = categories.find((category) => category.id === 'other')?.id ?? categories[0]?.id ?? 'other'
@@ -31,23 +28,92 @@ const fallbackClassify = (categories: CategoryOption[]): ClassificationResult =>
   }
 }
 
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+const DEFAULT_MODEL = 'gemini-2.5-flash'
+
+interface GeminiRequest {
+  contents: { role: string; parts: { text: string }[] }[]
+  generationConfig?: {
+    temperature?: number
+    maxOutputTokens?: number
+    responseMimeType?: string
+  }
+  systemInstruction?: { parts: { text: string }[] }
+}
+
+const callGemini = async (requestBody: GeminiRequest): Promise<string> => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('VITE_GEMINI_API_KEY is missing')
+  }
+
+  const response = await fetch(`${GEMINI_API_BASE}/models/${DEFAULT_MODEL}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`Gemini API error: ${text}`)
+  }
+
+  const data = await response.json()
+  const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!textContent) throw new Error('No successful output from Gemini')
+  return textContent
+}
+
+const extractJsonObject = <T>(text: string): T | null => {
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start < 0 || end < 0 || end < start) return null
+  try {
+    return JSON.parse(text.slice(start, end + 1)) as T
+  } catch {
+    return null
+  }
+}
+
 export const classifyExpense = async (
   description: string,
   categories: CategoryOption[],
 ): Promise<ClassificationResult> => {
   try {
-    if (!isFirebaseConfigured) {
-      return fallbackClassify(categories)
+    const categoryPrompt = categories.length
+      ? categories.map((c) => `- ${c.id}: ${c.name}`).join('\n')
+      : '- other: Other'
+
+    const prompt = [
+      'You are a finance classification assistant.',
+      'Classify the transaction description into one provided category.',
+      'Return strict JSON only with schema:',
+      '{"categoryId":"<one category id>","confidence":<0..1>,"tags":["tag1","tag2"]}',
+      'Available categories:',
+      categoryPrompt,
+      `Transaction description: "${description}"`,
+    ].join('\n')
+
+    const aiText = await callGemini({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        maxOutputTokens: 180,
+      },
+    })
+
+    const parsed = extractJsonObject<{ categoryId?: string; confidence?: number; tags?: string[] }>(aiText)
+    if (parsed && parsed.categoryId) {
+      return {
+        categoryId: parsed.categoryId,
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+        tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+      }
     }
-
-    const callable = httpsCallable<{ description: string; categories: CategoryOption[] }, ClassificationResult>(
-      functions,
-      'classifyExpense',
-    )
-
-    const response = await callable({ description, categories })
-    return response.data
-  } catch {
+    return fallbackClassify(categories)
+  } catch (error) {
+    console.warn('classifyExpense fallback triggered', error)
     return fallbackClassify(categories)
   }
 }
@@ -56,19 +122,45 @@ export const askFinanceAssistant = async (
   messages: ChatRequestMessage[],
   financialContext: string,
 ): Promise<string> => {
-  if (!isFirebaseConfigured) {
-    return 'AI service is not configured yet. Add Firebase env vars to enable Gemini-backed responses.'
-  }
-
-  const callable = httpsCallable<{ messages: ChatRequestMessage[]; financialContext: string }, ChatResponse>(
-    functions,
-    'financeChat',
-  )
-
   try {
-    const response = await callable({ messages, financialContext })
-    return response.data.answer
-  } catch {
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      return 'AI service is not configured yet. Add VITE_GEMINI_API_KEY to your environment.'
+    }
+
+    const contents = messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }))
+
+    const answer = await callGemini({
+      systemInstruction: {
+        parts: [
+          {
+            text: [
+              'You are FinSage, a personal finance assistant.',
+              'Use only the information provided in this request.',
+              'Keep responses practical, concise, and include clear next actions.',
+              'Do not provide legal or tax advice as definitive guidance.',
+            ].join(' '),
+          },
+        ],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `Financial context JSON:\n${financialContext || '{}'}\nUse this context when answering.` }],
+        },
+        ...contents,
+      ],
+      generationConfig: {
+        temperature: 0.25,
+        maxOutputTokens: 900,
+      },
+    })
+
+    return answer
+  } catch (error) {
+    console.error('financeChat fallback triggered', error)
     return 'FinSage assistant is temporarily unavailable. Please try again shortly.'
   }
 }
