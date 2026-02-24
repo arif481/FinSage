@@ -83,6 +83,14 @@ export const TransactionForm = ({
         })(event)
       }}
     >
+      <div className="form-header">
+        <h3>{initialTransaction ? 'Edit transaction' : 'Add transaction'}</h3>
+        <p className="section-subtitle">
+          Capture the transaction once. FinSage uses this data for budgets, reports, and AI
+          insights.
+        </p>
+      </div>
+
       <div className="field-row">
         <label className="field">
           <span>Type</span>
@@ -115,14 +123,18 @@ export const TransactionForm = ({
               </option>
             ))}
           </select>
-          {errors.categoryId ? <small className="error-text">{errors.categoryId.message}</small> : null}
+          {errors.categoryId ? (
+            <small className="error-text">{errors.categoryId.message}</small>
+          ) : null}
         </label>
       </div>
 
       <label className="field">
         <span>Description</span>
         <input placeholder="e.g. Starbucks coffee" type="text" {...register('description')} />
-        {errors.description ? <small className="error-text">{errors.description.message}</small> : null}
+        {errors.description ? (
+          <small className="error-text">{errors.description.message}</small>
+        ) : null}
       </label>
 
       <div className="field-row">
