@@ -33,6 +33,7 @@ npm run test:rules
 - Risk and rollback notes for backend/security changes.
 - Screenshots for UI changes.
 - Linked issue when applicable.
+- Conventional commit style for release automation (`feat:`, `fix:`, `chore:`, etc.).
 
 ## Code standards
 
