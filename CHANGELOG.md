@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.2.0...finsage-web-v0.3.0) (2026-02-24)
+
+
+### Features
+
+* bootstrap FinSage web app with Firebase, Gemini functions, and rules tests ([0112bbd](https://github.com/arif481/FinSage/commit/0112bbd9d14cce61754e8bea71fb19ed88485ddb))
+* elevate product UX and repository governance ([d5f5daa](https://github.com/arif481/FinSage/commit/d5f5daad0619916112734357add4e87dcc56b765))
+
 ## [0.2.0] - 2026-02-24
 
 ### Added
