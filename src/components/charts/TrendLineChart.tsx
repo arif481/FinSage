@@ -44,15 +44,17 @@ export const TrendLineChart = ({ data }: TrendLineChartProps) => {
             type="monotone"
             dataKey="income"
             stroke="var(--success)"
-            strokeWidth={2.5}
+            strokeWidth={3}
             dot={false}
+            style={{ filter: 'drop-shadow(0 0 8px var(--success))' }}
           />
           <Line
             type="monotone"
             dataKey="expense"
             stroke="var(--danger)"
-            strokeWidth={2.5}
+            strokeWidth={3}
             dot={false}
+            style={{ filter: 'drop-shadow(0 0 8px var(--danger))' }}
           />
         </LineChart>
       </ResponsiveContainer>
