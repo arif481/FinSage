@@ -31,3 +31,11 @@ npm --prefix functions install
 npm run typecheck:functions
 firebase deploy --only firestore:rules,firestore:indexes,functions --project finsage-89a1c
 ```
+
+## Automated versioned releases
+
+Workflow: `.github/workflows/release-please.yml`
+
+- Runs on `main` pushes.
+- Opens/updates a release PR based on conventional commits.
+- After merge, creates version tag and GitHub Release.
