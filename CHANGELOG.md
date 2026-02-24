@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.3.1...finsage-web-v0.4.0) (2026-02-24)
+
+
+### Features
+
+* harden firestore rules and elevate product UI ([#4](https://github.com/arif481/FinSage/issues/4)) ([a15c66f](https://github.com/arif481/FinSage/commit/a15c66fe7b405ab7a290aaa2ab27c7bb903835f3))
+
 ## [0.3.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.3.0...finsage-web-v0.3.1) (2026-02-24)
 
 
