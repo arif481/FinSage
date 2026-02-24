@@ -1,61 +1,41 @@
 # FinSage Web App
 
-FinSage is a personal finance web app built with React + Firebase. It provides transaction tracking, budget planning, analytics dashboards, CSV import/export, and an AI assistant workflow designed for Gemini integration through Firebase Functions/AI Logic.
+FinSage is a production-focused personal finance app built with React + Firebase. It includes transaction tracking, budget planning, reports, and Gemini-powered assistant features through Firebase Cloud Functions.
 
 ## Stack
 
-- Frontend: React 19, TypeScript, React Router, Recharts
-- Backend: Firebase Auth, Firestore, Cloud Functions, Hosting
-- AI integration: Callable Functions using Gemini API (with safe fallback paths)
-- Tooling: ESLint, Prettier, Vitest, Testing Library
+- Frontend: React 19, TypeScript, Vite, React Router, Recharts
+- Backend: Firebase Auth, Firestore, Cloud Functions
+- AI: Gemini API (server-side through callable Functions)
+- CI/CD: GitHub Actions (GitHub Pages + Firebase deployment workflow)
 
-## Features in this baseline
+## Core features
 
-- Authentication screens (email/password and Google auth wiring)
-- Dashboard with KPI cards, category pie chart, monthly trend chart
-- Transaction management (add/edit/delete/search/filter)
-- CSV import/export pipeline for transactions
-- Budget planner by month and category with progress tracking
-- Chat UI backed by Firestore chat history + callable AI endpoint
-- Reports screen with trend and category insights
-- Settings (theme, contrast, currency, notification preferences)
-- Feature-centric folder architecture and reusable services/hooks
+- Email/password and Google authentication
+- Dashboard KPIs + charts
+- Budget planning by category/month
+- Transaction CRUD with CSV import/export
+- AI category suggestion for transaction descriptions
+- AI chat assistant with Firestore chat history
+- Settings for theme/currency/notifications
 
-## Project layout
-
-```text
-src/
-  app/
-  components/
-  constants/
-  context/
-  features/
-  hooks/
-  screens/
-  services/
-  types/
-  utils/
-functions/
-firestore.rules
-firestore.indexes.json
-firebase.json
-```
-
-## Local setup
+## Local development
 
 1. Install dependencies:
 
 ```bash
 npm install
+npm --prefix functions install
 ```
 
-2. Copy env template and fill Firebase values:
+2. Create local env files:
 
 ```bash
 cp .env.example .env
+cp functions/.env.example functions/.env
 ```
 
-3. Run app:
+3. Run frontend:
 
 ```bash
 npm run dev
@@ -68,48 +48,49 @@ VITE_USE_EMULATORS=true npm run dev
 firebase emulators:start
 ```
 
-## Quality checks
+## Validation commands
 
 ```bash
 npm run typecheck
+npm run typecheck:functions
 npm run lint
 npm run test
 npm run build
 ```
 
-## Firebase deployment notes
-
-- `firestore.rules` enforces owner/collaborator scoped access under `/users/{uid}/...`
-- `firestore.indexes.json` includes budget/transaction query indexes
-- `functions/src/index.ts` has Gemini-backed callable functions:
-  - `classifyExpense`
-  - `financeChat`
-
-To deploy Functions with secrets:
+Rules tests:
 
 ```bash
-firebase functions:secrets:set GEMINI_API_KEY
-firebase deploy --only firestore:rules,firestore:indexes,functions,hosting
-```
-
-Optional runtime model overrides for Functions can be set in `functions/.env`:
-
-```bash
-cp functions/.env.example functions/.env
-```
-
-## Additional checks
-
-```bash
-npm --prefix functions install
-npm run typecheck:functions
 npm run test:rules
 ```
 
-`test:rules` uses Firebase Firestore Emulator and requires Java 21+.
+`test:rules` uses Firestore Emulator and requires Java 21+.
 
-## Next implementation tasks
+## GitHub Secrets required
 
-1. Replace Gemini REST calls with Firebase AI Logic once your project is fully configured for it.
-2. Add end-to-end tests for auth, transaction CRUD, and chat flow.
-3. Add advanced prompt/guardrail evaluation for financial advice quality.
+For `.github/workflows/deploy-pages.yml`:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID` (optional but recommended)
+- `VITE_RECAPTCHA_SITE_KEY` (optional unless App Check enabled on web)
+
+For `.github/workflows/deploy-firebase-functions.yml`:
+
+- `FIREBASE_TOKEN`
+- `GEMINI_API_KEY`
+
+## Deployment
+
+- Frontend deploys to GitHub Pages from `main` via `.github/workflows/deploy-pages.yml`.
+- Firebase Functions + Firestore rules/indexes deploy via `.github/workflows/deploy-firebase-functions.yml`.
+- Firebase project is configured as `finsage-89a1c` in `.firebaserc`.
+
+## Notes
+
+- Gemini API key is never stored in frontend code; it is set as a Firebase Functions secret.
+- AI category suggestion and assistant responses use real Gemini calls, with non-demo fallback behavior when service is unavailable.

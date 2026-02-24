@@ -40,6 +40,7 @@ export const TransactionsScreen = () => {
   const { categories, loading, transactions } = useFinanceCollections(user?.uid)
   const [editingTransaction, setEditingTransaction] = useState<FinanceTransaction | undefined>()
   const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | undefined>()
+  const [aiStatus, setAiStatus] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -73,6 +74,7 @@ export const TransactionsScreen = () => {
       }
 
       setSuggestedCategoryId(undefined)
+      setAiStatus(null)
     } finally {
       setSubmitting(false)
     }
@@ -91,20 +93,25 @@ export const TransactionsScreen = () => {
       return
     }
 
-    const suggestion = await classifyExpense(
-      description,
-      categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-      })),
-    )
+    try {
+      const suggestion = await classifyExpense(
+        description,
+        categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+        })),
+      )
 
-    const resolvedCategory =
-      categories.find((category) => category.id === suggestion.categoryId)?.id ??
-      categories.find((category) => category.name.toLowerCase() === suggestion.categoryId.toLowerCase())?.id ??
-      'other'
+      const resolvedCategory =
+        categories.find((category) => category.id === suggestion.categoryId)?.id ??
+        categories.find((category) => category.name.toLowerCase() === suggestion.categoryId.toLowerCase())?.id ??
+        'other'
 
-    setSuggestedCategoryId(resolvedCategory)
+      setSuggestedCategoryId(resolvedCategory)
+      setAiStatus(`Suggested category: ${resolvedCategory}`)
+    } catch {
+      setAiStatus('AI suggestion is currently unavailable. Please select a category manually.')
+    }
   }
 
   const handleImport = async (file: File) => {
@@ -146,11 +153,14 @@ export const TransactionsScreen = () => {
         onCancel={() => {
           setEditingTransaction(undefined)
           setSuggestedCategoryId(undefined)
+          setAiStatus(null)
         }}
         onRequestSuggestion={handleAiSuggestion}
         suggestedCategoryId={suggestedCategoryId}
         onSubmit={handleSubmit}
       />
+
+      {aiStatus ? <p className="info-text">{aiStatus}</p> : null}
 
       <CsvImportExport
         disabled={loading}

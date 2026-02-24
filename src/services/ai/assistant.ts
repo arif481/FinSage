@@ -21,46 +21,34 @@ interface ChatResponse {
   answer: string
 }
 
-const fallbackClassify = (description: string): ClassificationResult => {
-  const text = description.toLowerCase()
+const fallbackClassify = (categories: CategoryOption[]): ClassificationResult => {
+  const fallbackCategory = categories.find((category) => category.id === 'other')?.id ?? categories[0]?.id ?? 'other'
 
-  if (text.includes('uber') || text.includes('bus') || text.includes('gas')) {
-    return { categoryId: 'transport', tags: ['travel'], confidence: 0.62 }
+  return {
+    categoryId: fallbackCategory,
+    tags: [],
+    confidence: 0,
   }
-
-  if (text.includes('coffee') || text.includes('restaurant') || text.includes('dinner')) {
-    return { categoryId: 'dining', tags: ['food'], confidence: 0.64 }
-  }
-
-  if (text.includes('rent') || text.includes('lease')) {
-    return { categoryId: 'rent', tags: ['housing'], confidence: 0.88 }
-  }
-
-  if (text.includes('walmart') || text.includes('market') || text.includes('grocery')) {
-    return { categoryId: 'groceries', tags: ['necessities'], confidence: 0.8 }
-  }
-
-  return { categoryId: 'other', tags: [], confidence: 0.45 }
 }
 
 export const classifyExpense = async (
   description: string,
   categories: CategoryOption[],
 ): Promise<ClassificationResult> => {
-  if (!isFirebaseConfigured) {
-    return fallbackClassify(description)
-  }
-
-  const callable = httpsCallable<{ description: string; categories: CategoryOption[] }, ClassificationResult>(
-    functions,
-    'classifyExpense',
-  )
-
   try {
+    if (!isFirebaseConfigured) {
+      return fallbackClassify(categories)
+    }
+
+    const callable = httpsCallable<{ description: string; categories: CategoryOption[] }, ClassificationResult>(
+      functions,
+      'classifyExpense',
+    )
+
     const response = await callable({ description, categories })
     return response.data
   } catch {
-    return fallbackClassify(description)
+    return fallbackClassify(categories)
   }
 }
 
