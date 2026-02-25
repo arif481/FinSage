@@ -41,13 +41,17 @@ export const LoansScreen = () => {
         e.preventDefault()
         if (!user || !person.trim() || !amount) return
 
-        const payload = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const payload: any = {
             person: person.trim(),
             amount: parseFloat(amount),
             direction,
             status: 'active' as const,
             description: description.trim(),
-            dueDate: dueDate || undefined,
+        }
+
+        if (dueDate) {
+            payload.dueDate = dueDate
         }
 
         if (editingLoan) {
