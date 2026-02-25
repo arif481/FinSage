@@ -48,11 +48,10 @@ export const DailySpendingChart = ({ data, currency = '' }: DailySpendingChartPr
                             color: 'var(--text)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                         }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={((value: number, name: string) => [
-                            `${currency}${(value ?? 0).toFixed(2)}`,
+                        formatter={(value: number | string | undefined, name: string | undefined) => [
+                            `${currency}${Number(value ?? 0).toFixed(2)}`,
                             name === 'amount' ? 'Daily' : 'Cumulative',
-                        ]) as any}
+                        ]}
                     />
                     <Area
                         type="monotone"
