@@ -274,6 +274,59 @@ service cloud.firestore {
         && validTimestamp(request.resource.data.timestamp);
     }
 
+    function validLoanDirection(value) {
+      return value == 'borrowed' || value == 'lent';
+    }
+
+    function validLoanStatus(value) {
+      return value == 'active' || value == 'settled';
+    }
+
+    function validLoanCreate() {
+      return request.resource.data.keys().hasAll([
+          'person', 'amount', 'direction', 'status', 'description',
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'person', 'amount', 'direction', 'status', 'description',
+          'dueDate', 'settledDate', 'createdAt', 'updatedAt'
+        ])
+        && validShortString(request.resource.data.person, 120)
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && validLoanDirection(request.resource.data.direction)
+        && validLoanStatus(request.resource.data.status)
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 500
+        && validTimestamp(request.resource.data.createdAt)
+        && validTimestamp(request.resource.data.updatedAt);
+    }
+
+    function validLoanUpdate() {
+      return changedKeys().hasOnly([
+          'person', 'amount', 'direction', 'status', 'description',
+          'dueDate', 'settledDate', 'updatedAt'
+        ])
+        && changedKeys().hasAny(['updatedAt'])
+        && validTimestamp(request.resource.data.updatedAt)
+        && (
+          !changedKeys().hasAny(['person'])
+          || validShortString(request.resource.data.person, 120)
+        )
+        && (
+          !changedKeys().hasAny(['amount'])
+          || (request.resource.data.amount is number && request.resource.data.amount > 0)
+        )
+        && (
+          !changedKeys().hasAny(['direction'])
+          || validLoanDirection(request.resource.data.direction)
+        )
+        && (
+          !changedKeys().hasAny(['status'])
+          || validLoanStatus(request.resource.data.status)
+        );
+    }
+
     match /users/{userId} {
       allow create: if isOwner(userId) && validUserProfileCreate();
       allow read: if canReadUserData(userId);
@@ -299,6 +352,13 @@ service cloud.firestore {
         allow create: if canReadUserData(userId) && validBudgetCreate();
         allow update: if canReadUserData(userId) && validBudgetUpdate();
         allow delete: if canReadUserData(userId);
+      }
+
+      match /loans/{loanId} {
+        allow read: if canReadUserData(userId);
+        allow create: if isOwner(userId) && validLoanCreate();
+        allow update: if isOwner(userId) && validLoanUpdate();
+        allow delete: if isOwner(userId);
       }
 
       match /chatHistory/{messageId} {
