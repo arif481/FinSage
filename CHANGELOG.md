@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.8.0...finsage-web-v0.9.0) (2026-02-25)
+
+
+### Features
+
+* smart visuals pack 3 — treemap, speedometer, scatter, projection ([29a7b92](https://github.com/arif481/FinSage/commit/29a7b928438e8fb691b5bba06d816fba6a93f384))
+
+
+### Bug Fixes
+
+* resolve eslint type warnings in recharts tooltips ([0152251](https://github.com/arif481/FinSage/commit/0152251289399745c3f478f7f527e60e24ee06f5))
+
 ## [0.8.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.7.0...finsage-web-v0.8.0) (2026-02-25)
 
 
