@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { CashFlowWaterfall } from '@/components/charts/CashFlowWaterfall'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
+import { CategoryTreemap } from '@/components/charts/CategoryTreemap'
 import { DailySpendingChart } from '@/components/charts/DailySpendingChart'
+import { NetWorthProjection } from '@/components/charts/NetWorthProjection'
 import { SmartInsightsPanel } from '@/components/charts/SmartInsightsPanel'
 import { SpendingHeatmap } from '@/components/charts/SpendingHeatmap'
 import { SpendingPieChart } from '@/components/charts/SpendingPieChart'
+import { SpendingVelocityGauge } from '@/components/charts/SpendingVelocityGauge'
 import { SavingsGauge } from '@/components/charts/SavingsGauge'
+import { TransactionScatterPlot } from '@/components/charts/TransactionScatterPlot'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayBarChart } from '@/components/charts/WeekdayBarChart'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
@@ -22,6 +26,7 @@ import {
   budgetProgress,
   cashFlowWaterfall,
   categoryComparison,
+  categoryTreemapData,
   computeAchievements,
   computeHealthScore,
   dailySpending,
@@ -30,10 +35,13 @@ import {
   monthOverMonthComparison,
   monthlyTrend,
   netBalance,
+  netWorthProjectionData,
   spendingByCategory,
   spendingHeatmap,
   totalExpenses,
   totalIncome,
+  transactionScatterData,
+  velocityGaugeData,
   weekdayAnalysis,
 } from '@/utils/finance'
 import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
@@ -41,7 +49,7 @@ import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 export const DashboardScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { budgets, categories, error, loading, loans, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
     return <LoadingScreen />
@@ -77,25 +85,23 @@ export const DashboardScreen = () => {
       : null
   const topCategory = pieData[0]
 
-  // Smart analytics
+  // Smart analytics (Phase 1 & 2)
   const dailyData = dailySpending(transactions, currentMonth)
   const weekdayData = weekdayAnalysis(transactions)
   const heatmapCells = spendingHeatmap(transactions, currentMonth)
   const categoryBars = categoryComparison(transactions, categories)
   const smartInsights = generateSmartInsights(transactions, budgets, currentMonth)
-
-  // Phase 2 smart features
   const healthScore = computeHealthScore(transactions, budgets, currentMonth)
   const anomalies = detectAnomalies(transactions)
   const monthComparison = monthOverMonthComparison(transactions, currentMonth)
   const achievements = computeAchievements(transactions, budgets, currentMonth)
   const cashFlow = cashFlowWaterfall(transactions, categories, currentMonth)
 
-  // Loan summary
-  const activeLoans = loans.filter((l) => l.status === 'active')
-  const totalBorrowed = activeLoans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + l.amount, 0)
-  const totalLent = activeLoans.filter((l) => l.direction === 'lent').reduce((s, l) => s + l.amount, 0)
-  const overdueLoans = activeLoans.filter((l) => l.dueDate && new Date(l.dueDate) < new Date())
+  // Phase 3 smart visuals
+  const treemapData = categoryTreemapData(transactions, categories, currentMonth)
+  const netWorthData = netWorthProjectionData(transactions)
+  const velocityData = velocityGaugeData(transactions, budgets, currentMonth)
+  const scatterData = transactionScatterData(transactions, categories, currentMonth)
 
   const signals: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
@@ -171,36 +177,6 @@ export const DashboardScreen = () => {
         ))}
       </section>
 
-      {/* Loan Summary */}
-      {activeLoans.length > 0 && (
-        <section className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
-          <div className="chart-header">
-            <span className="chart-header__icon">💸</span>
-            <h3>Loan Summary</h3>
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div>
-              <small style={{ color: 'var(--text-muted)' }}>You owe</small>
-              <strong className="glow-text" style={{ display: 'block', color: 'var(--danger)', fontFamily: 'Space Grotesk, sans-serif' }}>
-                {formatCurrency(totalBorrowed, currency)}
-              </strong>
-            </div>
-            <div>
-              <small style={{ color: 'var(--text-muted)' }}>Owed to you</small>
-              <strong className="glow-text" style={{ display: 'block', color: 'var(--success)', fontFamily: 'Space Grotesk, sans-serif' }}>
-                {formatCurrency(totalLent, currency)}
-              </strong>
-            </div>
-            {overdueLoans.length > 0 && (
-              <span className="table-category" style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)', border: 'none' }}>
-                ⚠️ {overdueLoans.length} overdue
-              </span>
-            )}
-            <Link to="/loans" className="secondary-button" style={{ marginLeft: 'auto', fontSize: '0.8rem' }}>View all →</Link>
-          </div>
-        </section>
-      )}
-
       <section className="metric-grid" aria-label="Key metrics">
         <MetricCard label="Net balance" value={formatCurrency(netBalance(transactions), currency)} subtitle="Income minus expenses" tone={netBalance(transactions) < 0 ? 'danger' : 'good'} stagger={0} />
         <MetricCard label="Month expenses" value={formatCurrency(currentMonthExpenses, currency)} subtitle={`Budget ${formatCurrency(currentBudgetLimit, currency)}`} tone={currentMonthExpenses > currentBudgetLimit && currentBudgetLimit > 0 ? 'warning' : 'neutral'} stagger={1} />
@@ -209,16 +185,36 @@ export const DashboardScreen = () => {
 
       <PredictiveForecastWidget budgets={budgets} transactions={transactions} />
 
-      {/* Month-over-Month + Cash Flow */}
+      {/* Velocity Gauge + Net Worth Projection (Phase 3) */}
       <section className="grid-two">
         <div className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">⏱️</span>
+            <h3>Spending Velocity</h3>
+          </div>
+          <p className="section-subtitle">Pacing against total monthly budget.</p>
+          <SpendingVelocityGauge data={velocityData} currency={currency} />
+        </div>
+        <div className="card stack" style={{ '--stagger': 4 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">🚀</span>
+            <h3>Net Worth Projection</h3>
+          </div>
+          <p className="section-subtitle">Forecasted trajectory based on recent savings.</p>
+          <NetWorthProjection data={netWorthData} currency={currency} />
+        </div>
+      </section>
+
+      {/* Month-over-Month + Cash Flow */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 5 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">📅</span>
             <h3>Month vs Last Month</h3>
           </div>
           <MonthComparison data={monthComparison} currency={currency} />
         </div>
-        <div className="card stack" style={{ '--stagger': 4 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 6 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">💸</span>
             <h3>Cash Flow Breakdown</h3>
@@ -229,14 +225,14 @@ export const DashboardScreen = () => {
 
       {/* Savings Gauge + Daily Spending */}
       <section className="grid-two">
-        <div className="card stack" style={{ '--stagger': 5 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 7 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">💰</span>
             <h3>Savings Rate</h3>
           </div>
           <SavingsGauge income={currentMonthIncome} expenses={currentMonthExpenses} />
         </div>
-        <div className="card stack" style={{ '--stagger': 6 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 8 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">📈</span>
             <h3>Daily Spending Trend</h3>
@@ -245,16 +241,36 @@ export const DashboardScreen = () => {
         </div>
       </section>
 
+      {/* Transaction Scatter Plot (Phase 3) */}
+      <section className="card stack" style={{ '--stagger': 9 } as React.CSSProperties}>
+        <div className="chart-header">
+          <span className="chart-header__icon">📍</span>
+          <h3>Transaction Density Plot</h3>
+        </div>
+        <p className="section-subtitle">Visual map of daily money flows. Green = Income, Red = Expense.</p>
+        <TransactionScatterPlot data={scatterData} currency={currency} />
+      </section>
+
+      {/* Category Treemap (Phase 3) */}
+      <section className="card stack" style={{ '--stagger': 10 } as React.CSSProperties}>
+        <div className="chart-header">
+          <span className="chart-header__icon">📦</span>
+          <h3>Category Hierarchy Map</h3>
+        </div>
+        <p className="section-subtitle">Proportional area view of your category expenses.</p>
+        <CategoryTreemap data={treemapData} currency={currency} />
+      </section>
+
       {/* Weekday + Heatmap */}
       <section className="grid-two">
-        <div className="card stack" style={{ '--stagger': 7 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 11 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">📊</span>
             <h3>Spending by Day of Week</h3>
           </div>
           <WeekdayBarChart data={weekdayData} />
         </div>
-        <div className="card stack" style={{ '--stagger': 8 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 12 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">🗓️</span>
             <h3>Spending Heatmap</h3>
@@ -265,24 +281,24 @@ export const DashboardScreen = () => {
 
       {/* Pie + Category Bar */}
       <section className="grid-two">
-        <div className="card stack" style={{ '--stagger': 9 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 13 } as React.CSSProperties}>
           <div className="chart-header">
-            <span className="chart-header__icon">📋</span>
-            <h3>Spending by Category</h3>
+            <span className="chart-header__icon">🍩</span>
+            <h3>Spending Share (Pie)</h3>
           </div>
           <SpendingPieChart data={pieData} />
         </div>
-        <div className="card stack" style={{ '--stagger': 10 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 14 } as React.CSSProperties}>
           <div className="chart-header">
             <span className="chart-header__icon">📊</span>
-            <h3>Category Comparison</h3>
+            <h3>Category Comparison (Bar)</h3>
           </div>
           <CategoryBarChart data={categoryBars} currency={currency} />
         </div>
       </section>
 
       {/* Anomaly Detection */}
-      <section className="card stack" style={{ '--stagger': 11 } as React.CSSProperties}>
+      <section className="card stack" style={{ '--stagger': 15 } as React.CSSProperties}>
         <div className="chart-header">
           <span className="chart-header__icon">🔍</span>
           <h3>Spending Anomalies</h3>
@@ -292,7 +308,7 @@ export const DashboardScreen = () => {
       </section>
 
       {/* Achievements */}
-      <section className="card stack" style={{ '--stagger': 12 } as React.CSSProperties}>
+      <section className="card stack" style={{ '--stagger': 16 } as React.CSSProperties}>
         <div className="chart-header">
           <span className="chart-header__icon">🏅</span>
           <h3>Achievements</h3>
@@ -302,7 +318,7 @@ export const DashboardScreen = () => {
 
       {/* Recent Transactions + Monthly Trend */}
       <section className="grid-two">
-        <div className="card stack" style={{ '--stagger': 13 } as React.CSSProperties}>
+        <div className="card stack" style={{ '--stagger': 17 } as React.CSSProperties}>
           <h3>Recent transactions</h3>
           {transactions.slice(0, 5).map((transaction, i) => (
             <article key={transaction.id} className="list-row" style={{ animation: `fade-up 350ms ease both ${i * 60}ms` }}>
@@ -317,8 +333,8 @@ export const DashboardScreen = () => {
           ))}
           {transactions.length === 0 ? <p className="empty-state">No data yet - click Add expense.</p> : null}
         </div>
-        <div className="card stack" style={{ '--stagger': 14 } as React.CSSProperties}>
-          <h3>Monthly trend</h3>
+        <div className="card stack" style={{ '--stagger': 18 } as React.CSSProperties}>
+          <h3>Historical Trend</h3>
           <TrendLineChart data={trendData} />
         </div>
       </section>
