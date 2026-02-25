@@ -66,7 +66,6 @@ npm run test:rules
 ## Deployment
 
 - Frontend deployment: GitHub Pages workflow (`deploy-pages.yml`)
-- Backend deployment: Firebase workflow (`deploy-firebase-functions.yml`)
 - Release automation: Release Please workflow (`release-please.yml`)
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full required secrets and operational steps.
