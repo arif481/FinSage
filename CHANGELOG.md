@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.5.1...finsage-web-v0.6.0) (2026-02-25)
+
+
+### Features
+
+* modern UI overhaul + smart charts & analytics ([cd0c5f6](https://github.com/arif481/FinSage/commit/cd0c5f655d6efd914911824b18070b710e0b514f))
+* **ui:** implement futuristic ui overhaul, glowing glassmorphism, cmd+k palette, and ai forecast ([74608cb](https://github.com/arif481/FinSage/commit/74608cb132550470cc1cc35b0ca5d949381eeabe))
+
+
+### Bug Fixes
+
+* resolve eslint errors in chart formatters and finance utils ([ea25c83](https://github.com/arif481/FinSage/commit/ea25c832fdaac6e1ae597c138578ddd19263b5ff))
+
 ## [0.5.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.5.0...finsage-web-v0.5.1) (2026-02-24)
 
 
