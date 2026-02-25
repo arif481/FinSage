@@ -1529,6 +1529,399 @@ a:focus-visible {
   color: var(--primary);
 }
 
+/* ── Financial Health Score ── */
+.health-score {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.health-score__gauge {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.health-score__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.health-score__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-score__number {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.health-score__grade {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+}
+
+.health-score__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.health-bar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+
+.health-bar__score {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 0.75rem;
+}
+
+.health-bar__score--good {
+  color: var(--success);
+}
+
+.health-bar__score--warning {
+  color: var(--warning);
+}
+
+.health-bar__score--danger {
+  color: var(--danger);
+}
+
+.health-bar__track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-strong);
+  overflow: hidden;
+}
+
+.health-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.health-bar__fill--good {
+  background: var(--success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.health-bar__fill--warning {
+  background: var(--warning);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warning) 40%, transparent);
+}
+
+.health-bar__fill--danger {
+  background: var(--danger);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+/* ── Spending Anomalies ── */
+.anomaly-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+}
+
+.anomaly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.anomaly-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 5%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--border));
+  animation: scale-pop 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.anomaly-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.anomaly-item__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.anomaly-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.anomaly-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.anomaly-item__amount {
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.anomaly-item__reason {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.1rem 0 0;
+}
+
+.anomaly-item__date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.anomaly-item__badge {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── Month Comparison ── */
+.month-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.month-comparison__row {
+  animation: scale-pop 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 80ms);
+}
+
+.month-comparison__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.month-comparison__change {
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.month-comparison__change--good {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.month-comparison__change--danger {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+.month-comparison__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.month-comparison__bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.month-comparison__bar-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  width: 5.5rem;
+  flex-shrink: 0;
+}
+
+.month-comparison__bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-strong);
+  overflow: hidden;
+}
+
+.month-comparison__bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.month-comparison__bar--current {
+  background: var(--primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.month-comparison__bar--previous {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+.month-comparison__bar-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  width: 5rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Achievements ── */
+.achievements__header {
+  margin-bottom: 0.5rem;
+}
+
+.achievements__counter {
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.achievements__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.6rem;
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  animation: scale-pop 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.achievement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.achievement-card--unlocked {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  background: color-mix(in srgb, var(--success) 5%, var(--bg-elevated));
+}
+
+.achievement-card--locked {
+  opacity: 0.65;
+  filter: grayscale(0.4);
+}
+
+.achievement-card__icon-wrap {
+  position: relative;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.achievement-card__checkmark {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  font-size: 0.6rem;
+  background: var(--success);
+  color: white;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.achievement-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-card__title {
+  font-size: 0.85rem;
+  display: block;
+}
+
+.achievement-card__desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.achievement-card__progress-track {
+  width: 50px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-strong);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.achievement-card__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: width 1s ease;
+}
+
+.achievement-card__progress-fill--done {
+  background: var(--success);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.achievement-card__pct {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  width: 2rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .health-score {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .achievement-card {
+    flex-wrap: wrap;
+  }
+
+  .month-comparison__bar-label {
+    width: 4rem;
+  }
+}
+
 .insight-card__description {
   color: var(--text-muted);
   font-size: 0.82rem;
