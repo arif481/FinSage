@@ -9,6 +9,7 @@ interface CategoryTreemapProps {
 
 
 // Custom node rendering to add labels and styling
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomizedContent = (props: any) => {
     const { x, y, width, height, name } = props
 
@@ -67,6 +68,7 @@ export const CategoryTreemap = ({ data, currency }: CategoryTreemapProps) => {
                     animationDuration={1200}
                     style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))' }}
                 >
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <Tooltip content={({ active, payload }: any) => {
                         if (active && payload && payload.length) {
                             const nodeData = payload[0].payload
