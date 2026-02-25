@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.9.1...finsage-web-v0.10.0) (2026-02-25)
+
+
+### Features
+
+* advanced loans with interconnected transactions and partial repayment progress ([cf28c21](https://github.com/arif481/FinSage/commit/cf28c2144489273b457fa1ea18b99aed309ed0a5))
+
 ## [0.9.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.9.0...finsage-web-v0.9.1) (2026-02-25)
 
 
