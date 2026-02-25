@@ -22,7 +22,10 @@ export const TransactionTable = ({
 }: TransactionTableProps) => {
   if (transactions.length === 0) {
     return (
-      <p className="empty-state">No transactions yet. Add your first expense to get started.</p>
+      <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+        <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</p>
+        <p className="empty-state">No transactions yet. Add your first expense to get started.</p>
+      </div>
     )
   }
 
@@ -36,6 +39,7 @@ export const TransactionTable = ({
               <th scope="col">Date</th>
               <th scope="col">Description</th>
               <th scope="col">Category</th>
+              <th scope="col">Type</th>
               <th scope="col">Amount</th>
               <th scope="col">Actions</th>
             </tr>
@@ -46,13 +50,18 @@ export const TransactionTable = ({
               return (
                 <tr
                   key={transaction.id}
-                  style={{ animation: 'stagger-fade-in 0.3s ease forwards', opacity: 0, animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+                  style={{ animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${Math.min(index * 40, 400)}ms` }}
                 >
                   <td>{formatDate(transaction.date)}</td>
-                  <td>{transaction.description}</td>
+                  <td><strong>{transaction.description}</strong></td>
                   <td>
                     <span className="table-category">
                       {resolveCategoryName(categories, transaction.categoryId)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`type-badge type-badge--${transaction.type}`}>
+                      {isExpense ? '↓ Expense' : '↑ Income'}
                     </span>
                   </td>
                   <td className={isExpense ? 'amount amount--expense' : 'amount amount--income'}>
