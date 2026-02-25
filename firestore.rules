@@ -118,76 +118,40 @@ service cloud.firestore {
     }
 
     function validTransactionCreate() {
-      return request.resource.data.keys().hasOnly([
-          'amount',
-          'categoryId',
-          'date',
-          'description',
-          'tags',
-          'type',
-          'createdAt',
-          'updatedAt'
-        ])
-        && request.resource.data.keys().hasAll([
-          'amount',
-          'categoryId',
-          'date',
-          'description',
-          'tags',
-          'type',
-          'createdAt',
-          'updatedAt'
-        ])
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && validShortString(request.resource.data.categoryId, 64)
-        && (request.resource.data.date is string || request.resource.data.date is timestamp)
-        && validShortString(request.resource.data.description, 240)
-        && validStringList(request.resource.data.tags, 12)
-        && validTransactionType(request.resource.data.type)
-        && validTimestamp(request.resource.data.createdAt)
-        && validTimestamp(request.resource.data.updatedAt);
+      let data = request.resource.data;
+      let hasRequired = data.keys().hasAll([
+        'amount', 'categoryId', 'date', 'description', 'tags', 'type', 'createdAt', 'updatedAt'
+      ]);
+      let hasOnlyAllowed = data.keys().hasOnly([
+        'amount', 'categoryId', 'date', 'description', 'tags', 'type', 'linkedLoanId', 'createdAt', 'updatedAt'
+      ]);
+      return hasRequired && hasOnlyAllowed
+        && data.amount is number && data.amount > 0
+        && validShortString(data.categoryId, 64)
+        && (data.date is string || data.date is timestamp)
+        && validShortString(data.description, 240)
+        && validStringList(data.tags, 12)
+        && validTransactionType(data.type)
+        && (!('linkedLoanId' in data) || validShortString(data.linkedLoanId, 64))
+        && validTimestamp(data.createdAt)
+        && validTimestamp(data.updatedAt);
     }
 
     function validTransactionUpdate() {
-      return changedKeys().hasOnly([
-          'amount',
-          'categoryId',
-          'date',
-          'description',
-          'tags',
-          'type',
-          'updatedAt'
+      let changes = changedKeys();
+      let data = request.resource.data;
+      return changes.hasOnly([
+          'amount', 'categoryId', 'date', 'description', 'tags', 'type', 'linkedLoanId', 'updatedAt'
         ])
-        && changedKeys().hasAny(['updatedAt'])
-        && validTimestamp(request.resource.data.updatedAt)
-        && (
-          !changedKeys().hasAny(['amount'])
-          || (
-            request.resource.data.amount is number
-            && request.resource.data.amount > 0
-          )
-        )
-        && (
-          !changedKeys().hasAny(['categoryId'])
-          || validShortString(request.resource.data.categoryId, 64)
-        )
-        && (
-          !changedKeys().hasAny(['date'])
-          || (request.resource.data.date is string || request.resource.data.date is timestamp)
-        )
-        && (
-          !changedKeys().hasAny(['description'])
-          || validShortString(request.resource.data.description, 240)
-        )
-        && (
-          !changedKeys().hasAny(['tags'])
-          || validStringList(request.resource.data.tags, 12)
-        )
-        && (
-          !changedKeys().hasAny(['type'])
-          || validTransactionType(request.resource.data.type)
-        );
+        && changes.hasAny(['updatedAt'])
+        && validTimestamp(data.updatedAt)
+        && (!changes.hasAny(['amount']) || (data.amount is number && data.amount > 0))
+        && (!changes.hasAny(['categoryId']) || validShortString(data.categoryId, 64))
+        && (!changes.hasAny(['date']) || (data.date is string || data.date is timestamp))
+        && (!changes.hasAny(['description']) || validShortString(data.description, 240))
+        && (!changes.hasAny(['tags']) || validStringList(data.tags, 12))
+        && (!changes.hasAny(['type']) || validTransactionType(data.type))
+        && (!changes.hasAny(['linkedLoanId']) || validShortString(data.linkedLoanId, 64));
     }
 
     function validCategoryCreate() {
@@ -283,48 +247,119 @@ service cloud.firestore {
     }
 
     function validLoanCreate() {
-      return request.resource.data.keys().hasAll([
-          'person', 'amount', 'direction', 'status', 'description',
-          'createdAt', 'updatedAt'
-        ])
-        && request.resource.data.keys().hasOnly([
-          'person', 'amount', 'direction', 'status', 'description',
-          'dueDate', 'settledDate', 'createdAt', 'updatedAt'
-        ])
-        && validShortString(request.resource.data.person, 120)
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && validLoanDirection(request.resource.data.direction)
-        && validLoanStatus(request.resource.data.status)
-        && request.resource.data.description is string
-        && request.resource.data.description.size() <= 500
-        && validTimestamp(request.resource.data.createdAt)
-        && validTimestamp(request.resource.data.updatedAt);
+      let data = request.resource.data;
+      let hasRequired = data.keys().hasAll([
+        'person', 'amount', 'direction', 'status', 'description', 'createdAt', 'updatedAt'
+      ]);
+      let hasOnlyAllowed = data.keys().hasOnly([
+        'person', 'amount', 'repaidAmount', 'direction', 'status', 'description',
+        'dueDate', 'settledDate', 'createdAt', 'updatedAt'
+      ]);
+      return hasRequired && hasOnlyAllowed
+        && validShortString(data.person, 120)
+        && data.amount is number && data.amount > 0
+        && (!('repaidAmount' in data) || (data.repaidAmount is number && data.repaidAmount >= 0))
+        && validLoanDirection(data.direction)
+        && validLoanStatus(data.status)
+        && data.description is string && data.description.size() <= 500
+        && validTimestamp(data.createdAt)
+        && validTimestamp(data.updatedAt);
     }
 
     function validLoanUpdate() {
-      return changedKeys().hasOnly([
-          'person', 'amount', 'direction', 'status', 'description',
+      let changes = changedKeys();
+      let data = request.resource.data;
+      return changes.hasOnly([
+          'person', 'amount', 'repaidAmount', 'direction', 'status', 'description',
           'dueDate', 'settledDate', 'updatedAt'
         ])
-        && changedKeys().hasAny(['updatedAt'])
-        && validTimestamp(request.resource.data.updatedAt)
-        && (
-          !changedKeys().hasAny(['person'])
-          || validShortString(request.resource.data.person, 120)
-        )
-        && (
-          !changedKeys().hasAny(['amount'])
-          || (request.resource.data.amount is number && request.resource.data.amount > 0)
-        )
-        && (
-          !changedKeys().hasAny(['direction'])
-          || validLoanDirection(request.resource.data.direction)
-        )
-        && (
-          !changedKeys().hasAny(['status'])
-          || validLoanStatus(request.resource.data.status)
-        );
+        && changes.hasAny(['updatedAt'])
+        && validTimestamp(data.updatedAt)
+        && (!changes.hasAny(['person']) || validShortString(data.person, 120))
+        && (!changes.hasAny(['amount']) || (data.amount is number && data.amount > 0))
+        && (!changes.hasAny(['repaidAmount']) || (data.repaidAmount is number && data.repaidAmount >= 0))
+        && (!changes.hasAny(['direction']) || validLoanDirection(data.direction))
+        && (!changes.hasAny(['status']) || validLoanStatus(data.status));
+    }
+
+    function validGoalStatus(value) {
+      return value == 'active' || value == 'completed' || value == 'paused';
+    }
+
+    function validSavingsGoalCreate() {
+      let data = request.resource.data;
+      let hasRequired = data.keys().hasAll([
+        'name', 'targetAmount', 'currentAmount', 'status', 'createdAt', 'updatedAt'
+      ]);
+      let hasOnlyAllowed = data.keys().hasOnly([
+        'name', 'targetAmount', 'currentAmount', 'status', 'targetDate', 'icon', 'color', 'createdAt', 'updatedAt'
+      ]);
+      return hasRequired && hasOnlyAllowed
+        && validShortString(data.name, 120)
+        && data.targetAmount is number && data.targetAmount > 0
+        && data.currentAmount is number && data.currentAmount >= 0
+        && validGoalStatus(data.status)
+        && (!('targetDate' in data) || data.targetDate is string)
+        && (!('icon' in data) || validShortString(data.icon, 40))
+        && (!('color' in data) || validShortString(data.color, 32))
+        && validTimestamp(data.createdAt)
+        && validTimestamp(data.updatedAt);
+    }
+
+    function validSavingsGoalUpdate() {
+      let changes = changedKeys();
+      let data = request.resource.data;
+      return changes.hasOnly([
+          'name', 'targetAmount', 'currentAmount', 'status', 'targetDate', 'icon', 'color', 'updatedAt'
+        ])
+        && changes.hasAny(['updatedAt'])
+        && validTimestamp(data.updatedAt)
+        && (!changes.hasAny(['name']) || validShortString(data.name, 120))
+        && (!changes.hasAny(['targetAmount']) || (data.targetAmount is number && data.targetAmount > 0))
+        && (!changes.hasAny(['currentAmount']) || (data.currentAmount is number && data.currentAmount >= 0))
+        && (!changes.hasAny(['status']) || validGoalStatus(data.status))
+        && (!changes.hasAny(['targetDate']) || data.targetDate is string)
+        && (!changes.hasAny(['icon']) || validShortString(data.icon, 40))
+        && (!changes.hasAny(['color']) || validShortString(data.color, 32));
+    }
+
+    function validSplitStatus(value) {
+      return value == 'pending' || value == 'settled';
+    }
+
+    function validSplitExpenseCreate() {
+      let data = request.resource.data;
+      let hasRequired = data.keys().hasAll([
+        'description', 'totalAmount', 'myShare', 'splitWith', 'status', 'createdAt', 'updatedAt'
+      ]);
+      let hasOnlyAllowed = data.keys().hasOnly([
+        'description', 'totalAmount', 'myShare', 'splitWith', 'status', 'linkedTransactionId', 'settledDate', 'createdAt', 'updatedAt'
+      ]);
+      return hasRequired && hasOnlyAllowed
+        && validShortString(data.description, 240)
+        && data.totalAmount is number && data.totalAmount > 0
+        && data.myShare is number && data.myShare >= 0 && data.myShare <= data.totalAmount
+        && validShortString(data.splitWith, 120)
+        && validSplitStatus(data.status)
+        && (!('linkedTransactionId' in data) || validShortString(data.linkedTransactionId, 64))
+        && validTimestamp(data.createdAt)
+        && validTimestamp(data.updatedAt);
+    }
+
+    function validSplitExpenseUpdate() {
+      let changes = changedKeys();
+      let data = request.resource.data;
+      return changes.hasOnly([
+          'description', 'totalAmount', 'myShare', 'splitWith', 'status', 'linkedTransactionId', 'settledDate', 'updatedAt'
+        ])
+        && changes.hasAny(['updatedAt'])
+        && validTimestamp(data.updatedAt)
+        && (!changes.hasAny(['description']) || validShortString(data.description, 240))
+        && (!changes.hasAny(['totalAmount']) || (data.totalAmount is number && data.totalAmount > 0))
+        && (!changes.hasAny(['myShare']) || (data.myShare is number && data.myShare >= 0 && data.myShare <= data.totalAmount))
+        && (!changes.hasAny(['splitWith']) || validShortString(data.splitWith, 120))
+        && (!changes.hasAny(['status']) || validSplitStatus(data.status))
+        && (!changes.hasAny(['linkedTransactionId']) || validShortString(data.linkedTransactionId, 64));
     }
 
     match /users/{userId} {
@@ -359,6 +394,20 @@ service cloud.firestore {
         allow create: if isOwner(userId) && validLoanCreate();
         allow update: if isOwner(userId) && validLoanUpdate();
         allow delete: if isOwner(userId);
+      }
+
+      match /savingsGoals/{goalId} {
+        allow read: if canReadUserData(userId);
+        allow create: if canReadUserData(userId) && validSavingsGoalCreate();
+        allow update: if canReadUserData(userId) && validSavingsGoalUpdate();
+        allow delete: if canReadUserData(userId);
+      }
+
+      match /splitExpenses/{splitId} {
+        allow read: if canReadUserData(userId);
+        allow create: if canReadUserData(userId) && validSplitExpenseCreate();
+        allow update: if canReadUserData(userId) && validSplitExpenseUpdate();
+        allow delete: if canReadUserData(userId);
       }
 
       match /chatHistory/{messageId} {
