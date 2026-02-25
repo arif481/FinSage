@@ -51,6 +51,7 @@ export const TransactionScatterPlot = ({ data, currency }: TransactionScatterPlo
                             color: 'var(--text)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                         }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         formatter={(value: number | string | undefined, name: string | number | undefined, props: any) => {
                             if (name === 'Day of Month') return [`Day ${value}`, 'Date']
                             if (name === 'Amount') return [`${currency}${Number(value ?? 0).toLocaleString()}`, props.payload.categoryName]
