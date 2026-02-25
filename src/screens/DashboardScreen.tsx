@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom'
+import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
+import { DailySpendingChart } from '@/components/charts/DailySpendingChart'
+import { SmartInsightsPanel } from '@/components/charts/SmartInsightsPanel'
+import { SpendingHeatmap } from '@/components/charts/SpendingHeatmap'
 import { SpendingPieChart } from '@/components/charts/SpendingPieChart'
+import { SavingsGauge } from '@/components/charts/SavingsGauge'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
+import { WeekdayBarChart } from '@/components/charts/WeekdayBarChart'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { MetricCard } from '@/components/common/MetricCard'
 import { PredictiveForecastWidget } from '@/components/common/PredictiveForecastWidget'
@@ -9,11 +15,16 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import {
   budgetProgress,
+  categoryComparison,
+  dailySpending,
+  generateSmartInsights,
   monthlyTrend,
   netBalance,
   spendingByCategory,
+  spendingHeatmap,
   totalExpenses,
   totalIncome,
+  weekdayAnalysis,
 } from '@/utils/finance'
 import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 
@@ -57,22 +68,29 @@ export const DashboardScreen = () => {
       : null
   const topCategory = pieData[0]
 
-  const signals: string[] = []
+  // Smart data
+  const dailyData = dailySpending(transactions, currentMonth)
+  const weekdayData = weekdayAnalysis(transactions)
+  const heatmapCells = spendingHeatmap(transactions, currentMonth)
+  const categoryBars = categoryComparison(transactions, categories)
+  const smartInsights = generateSmartInsights(transactions, budgets, currentMonth)
+
+  const signals: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
   if (currentBudgetLimit === 0) {
-    signals.push('Set at least one monthly budget category to unlock overspending alerts.')
+    signals.push({ text: 'Set at least one monthly budget category to unlock overspending alerts.', tone: 'primary' })
   }
 
   if (overspentCategories.length > 0) {
-    signals.push(`${overspentCategories.length} categories are currently over budget.`)
+    signals.push({ text: `${overspentCategories.length} categories are currently over budget.`, tone: 'danger' })
   }
 
   if (savingsRate !== null && savingsRate < 10) {
-    signals.push('Savings rate is below 10%. Consider reducing variable expenses this week.')
+    signals.push({ text: 'Savings rate is below 10%. Consider reducing variable expenses this week.', tone: 'warning' })
   }
 
   if (signals.length === 0) {
-    signals.push('Budget and spending are stable. Keep logging transactions for better forecasts.')
+    signals.push({ text: 'Budget and spending are stable. Keep logging transactions for better forecasts.', tone: 'good' })
   }
 
   return (
@@ -84,14 +102,14 @@ export const DashboardScreen = () => {
         </p>
       ) : null}
 
-      <section className="hero-panel">
+      <section className="hero-panel" style={{ animation: 'fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
         <div className="hero-panel__head">
           <div>
-            <p className="kicker">Financial cockpit</p>
-            <h2>Dashboard</h2>
-            <p className="section-subtitle">Track spending, budgets, and trends at a glance.</p>
+            <p className="kicker glow-text" style={{ animation: 'fade-up 400ms ease both 100ms' }}>Financial cockpit</p>
+            <h2 style={{ animation: 'fade-up 400ms ease both 200ms' }}>Dashboard</h2>
+            <p className="section-subtitle" style={{ animation: 'fade-up 400ms ease both 300ms' }}>Track spending, budgets, and trends at a glance.</p>
           </div>
-          <div className="button-row">
+          <div className="button-row" style={{ animation: 'fade-up 400ms ease both 400ms' }}>
             <Link className="secondary-button" to="/budgets">
               Set budget
             </Link>
@@ -102,28 +120,27 @@ export const DashboardScreen = () => {
         </div>
 
         <div className="hero-panel__meta">
-          <article className="hero-stat">
-            <small>Current month income</small>
-            <strong>{formatCurrency(currentMonthIncome, currency)}</strong>
-          </article>
-          <article className="hero-stat">
-            <small>Current month expense</small>
-            <strong>{formatCurrency(currentMonthExpenses, currency)}</strong>
-          </article>
-          <article className="hero-stat">
-            <small>Savings rate</small>
-            <strong>
-              {savingsRate === null ? 'No income data' : `${Math.round(savingsRate)}%`}
-            </strong>
-          </article>
-          <article className="hero-stat">
-            <small>Top spend category</small>
-            <strong>{topCategory ? topCategory.label : 'No data yet'}</strong>
-          </article>
+          {[
+            { label: 'Current month income', value: formatCurrency(currentMonthIncome, currency) },
+            { label: 'Current month expense', value: formatCurrency(currentMonthExpenses, currency) },
+            { label: 'Savings rate', value: savingsRate === null ? 'No income data' : `${Math.round(savingsRate)}%` },
+            { label: 'Top spend category', value: topCategory ? topCategory.label : 'No data yet' },
+          ].map((stat, i) => (
+            <article key={stat.label} className="hero-stat" style={{ animation: `scale-pop 450ms cubic-bezier(0.16, 1, 0.3, 1) both ${300 + i * 80}ms` }}>
+              <small>{stat.label}</small>
+              <strong className="glow-text">{stat.value}</strong>
+            </article>
+          ))}
         </div>
       </section>
 
-      <header className="screen-header">
+      {/* Smart Insights Panel */}
+      <section style={{ '--stagger': 1 } as React.CSSProperties}>
+        <h3 style={{ marginBottom: '0.5rem' }}>🧠 Smart Insights</h3>
+        <SmartInsightsPanel insights={smartInsights} />
+      </section>
+
+      <header className="screen-header" style={{ '--stagger': 2 } as React.CSSProperties}>
         <div>
           <h3>Health signals</h3>
           <p className="section-subtitle">
@@ -132,11 +149,11 @@ export const DashboardScreen = () => {
         </div>
       </header>
 
-      <section className="card stack">
-        {signals.map((signal) => (
-          <div key={signal} className="signal-item">
-            <span className="signal-item__dot" aria-hidden="true" />
-            <p>{signal}</p>
+      <section className="card stack" style={{ '--stagger': 2 } as React.CSSProperties}>
+        {signals.map((signal, i) => (
+          <div key={signal.text} className="signal-item" style={{ animation: `fade-up 400ms ease both ${i * 100}ms` }}>
+            <span className={`status-dot status-dot--${signal.tone}`} aria-hidden="true" />
+            <p>{signal.text}</p>
           </div>
         ))}
       </section>
@@ -147,6 +164,7 @@ export const DashboardScreen = () => {
           value={formatCurrency(netBalance(transactions), currency)}
           subtitle="Income minus expenses"
           tone={netBalance(transactions) < 0 ? 'danger' : 'good'}
+          stagger={0}
         />
         <MetricCard
           label="Month expenses"
@@ -157,33 +175,89 @@ export const DashboardScreen = () => {
               ? 'warning'
               : 'neutral'
           }
+          stagger={1}
         />
         <MetricCard
           label="Budget remaining"
           value={formatCurrency(totalRemaining, currency)}
           subtitle={progress.length > 0 ? `${progress.length} active categories` : 'No budgets set'}
           tone={totalRemaining < 0 ? 'danger' : 'good'}
+          stagger={2}
         />
       </section>
 
       <PredictiveForecastWidget budgets={budgets} transactions={transactions} />
 
+      {/* Savings Gauge + Daily Spending Chart */}
       <section className="grid-two">
-        <div className="card stack">
-          <h3>Spending by category</h3>
+        <div className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">💰</span>
+            <h3>Savings Rate</h3>
+          </div>
+          <SavingsGauge income={currentMonthIncome} expenses={currentMonthExpenses} />
+        </div>
+
+        <div className="card stack" style={{ '--stagger': 4 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📈</span>
+            <h3>Daily Spending Trend</h3>
+          </div>
+          <DailySpendingChart data={dailyData} currency={currency} />
+        </div>
+      </section>
+
+      {/* Weekday Analysis + Spending Heatmap */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 5 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📊</span>
+            <h3>Spending by Day of Week</h3>
+          </div>
+          <WeekdayBarChart data={weekdayData} />
+        </div>
+
+        <div className="card stack" style={{ '--stagger': 6 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">🗓️</span>
+            <h3>Spending Heatmap</h3>
+          </div>
+          <SpendingHeatmap cells={heatmapCells} currency={currency} />
+        </div>
+      </section>
+
+      {/* Category Breakdown + Pie Chart */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 7 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📋</span>
+            <h3>Spending by Category</h3>
+          </div>
           <SpendingPieChart data={pieData} />
         </div>
 
-        <div className="card stack">
+        <div className="card stack" style={{ '--stagger': 8 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📊</span>
+            <h3>Category Comparison</h3>
+          </div>
+          <CategoryBarChart data={categoryBars} currency={currency} />
+        </div>
+      </section>
+
+      {/* Recent Transactions + Monthly Trend */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 9 } as React.CSSProperties}>
           <h3>Recent transactions</h3>
-          {transactions.slice(0, 5).map((transaction) => (
-            <article key={transaction.id} className="list-row">
+          {transactions.slice(0, 5).map((transaction, i) => (
+            <article key={transaction.id} className="list-row" style={{ animation: `fade-up 350ms ease both ${i * 60}ms` }}>
               <div>
                 <strong>{transaction.description}</strong>
                 <small>{formatDate(transaction.date)}</small>
               </div>
               <span
                 className={transaction.type === 'expense' ? 'amount--expense' : 'amount--income'}
+                style={{ fontWeight: 800 }}
               >
                 {transaction.type === 'expense' ? '-' : '+'}
                 {formatCurrency(transaction.amount, currency)}
@@ -194,11 +268,11 @@ export const DashboardScreen = () => {
             <p className="empty-state">No data yet - click Add expense.</p>
           ) : null}
         </div>
-      </section>
 
-      <section className="card stack">
-        <h3>Monthly trend</h3>
-        <TrendLineChart data={trendData} />
+        <div className="card stack" style={{ '--stagger': 10 } as React.CSSProperties}>
+          <h3>Monthly trend</h3>
+          <TrendLineChart data={trendData} />
+        </div>
       </section>
     </main>
   )

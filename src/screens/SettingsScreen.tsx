@@ -5,6 +5,8 @@ import { useTheme } from '@/hooks/useTheme'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { DEFAULT_PREFERENCES, updateUserPreferences } from '@/services/firestore/profile'
 import { UserPreferences } from '@/types/finance'
+import { ToggleSwitch } from '@/components/common/ToggleSwitch'
+import { showToast } from '@/components/common/Toast'
 
 const currencyOptions = ['USD', 'EUR', 'GBP', 'INR', 'JPY']
 
@@ -13,8 +15,6 @@ export const SettingsScreen = () => {
   const { profile } = useUserProfile(user?.uid)
   const { highContrast, themeMode, toggleHighContrast, toggleThemeMode } = useTheme()
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES)
-  const [status, setStatus] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile) {
@@ -29,24 +29,28 @@ export const SettingsScreen = () => {
       return
     }
 
-    setStatus(null)
-    setError(null)
-
     try {
       await updateUserPreferences(user.uid, {
         ...preferences,
         highContrast,
         themeMode,
       })
-      setStatus('Preferences saved.')
+      showToast('Preferences saved successfully.', 'success')
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save preferences.')
+      showToast(saveError instanceof Error ? saveError.message : 'Unable to save preferences.', 'error')
     }
   }
 
+  const insightData = [
+    { label: 'Signed in as', value: user?.email ?? 'Unknown user' },
+    { label: 'Theme mode', value: themeMode === 'dark' ? '🌙 Dark' : '☀️ Light' },
+    { label: 'High contrast', value: highContrast ? '✅ Enabled' : '❌ Disabled' },
+    { label: 'Currency', value: preferences.currency },
+  ]
+
   return (
     <main className="screen stack">
-      <header className="screen-header">
+      <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
         <div>
           <h2>Settings</h2>
           <p className="section-subtitle">
@@ -56,66 +60,46 @@ export const SettingsScreen = () => {
       </header>
 
       <section className="insight-strip">
-        <article className="insight-strip__item">
-          <small>Signed in as</small>
-          <strong>{user?.email ?? 'Unknown user'}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Theme mode</small>
-          <strong>{themeMode === 'dark' ? 'Dark' : 'Light'}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>High contrast</small>
-          <strong>{highContrast ? 'Enabled' : 'Disabled'}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Currency</small>
-          <strong>{preferences.currency}</strong>
-        </article>
+        {insightData.map((item, i) => (
+          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+            <small>{item.label}</small>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
       </section>
 
-      <section className="card stack">
-        <h3>Appearance</h3>
+      <section className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
+        <h3>⚙️ Appearance</h3>
 
-        <div className="field-row">
-          <div className="field field--button">
-            <span>Theme mode</span>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => {
-                toggleThemeMode()
-                setPreferences((current) => ({
-                  ...current,
-                  themeMode: themeMode === 'light' ? 'dark' : 'light',
-                }))
-              }}
-            >
-              Switch to {themeMode === 'light' ? 'dark' : 'light'} mode
-            </button>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <ToggleSwitch
+            checked={themeMode === 'dark'}
+            label={`Dark mode ${themeMode === 'dark' ? '(active)' : ''}`}
+            onChange={() => {
+              toggleThemeMode()
+              setPreferences((current) => ({
+                ...current,
+                themeMode: themeMode === 'light' ? 'dark' : 'light',
+              }))
+            }}
+          />
 
-          <div className="field field--button">
-            <span>High contrast</span>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => {
-                toggleHighContrast()
-                setPreferences((current) => ({
-                  ...current,
-                  highContrast: !highContrast,
-                }))
-              }}
-            >
-              {highContrast ? 'Disable' : 'Enable'} high contrast
-            </button>
-          </div>
+          <ToggleSwitch
+            checked={highContrast}
+            label={`High contrast ${highContrast ? '(active)' : ''}`}
+            onChange={() => {
+              toggleHighContrast()
+              setPreferences((current) => ({
+                ...current,
+                highContrast: !highContrast,
+              }))
+            }}
+          />
         </div>
       </section>
 
-      <section className="card stack">
-        <h3>Preferences</h3>
+      <section className="card stack" style={{ '--stagger': 2 } as React.CSSProperties}>
+        <h3>🔔 Preferences</h3>
 
         <label className="field">
           <span>Currency</span>
@@ -136,44 +120,35 @@ export const SettingsScreen = () => {
           </select>
         </label>
 
-        <label className="checkbox-field">
-          <input
-            checked={preferences.emailNotifications}
-            type="checkbox"
-            onChange={(event) => {
-              setPreferences((current) => ({
-                ...current,
-                emailNotifications: event.target.checked,
-              }))
-            }}
-          />
-          <span>Email notifications</span>
-        </label>
+        <ToggleSwitch
+          checked={preferences.emailNotifications}
+          label="Email notifications"
+          onChange={() => {
+            setPreferences((current) => ({
+              ...current,
+              emailNotifications: !current.emailNotifications,
+            }))
+          }}
+        />
 
-        <label className="checkbox-field">
-          <input
-            checked={preferences.pushNotifications}
-            type="checkbox"
-            onChange={(event) => {
-              setPreferences((current) => ({
-                ...current,
-                pushNotifications: event.target.checked,
-              }))
-            }}
-          />
-          <span>Push notifications</span>
-        </label>
+        <ToggleSwitch
+          checked={preferences.pushNotifications}
+          label="Push notifications"
+          onChange={() => {
+            setPreferences((current) => ({
+              ...current,
+              pushNotifications: !current.pushNotifications,
+            }))
+          }}
+        />
 
         <button className="primary-button" type="button" onClick={() => void savePreferences()}>
           Save settings
         </button>
-
-        {status ? <p className="success-text">{status}</p> : null}
-        {error ? <p className="error-text">{error}</p> : null}
       </section>
 
-      <section className="card stack">
-        <h3>Product and support</h3>
+      <section className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
+        <h3>📦 Product and support</h3>
         <p className="section-subtitle">FinSage is developed and maintained by Arif.</p>
         <div className="button-row">
           <Link className="secondary-button" to="/about">

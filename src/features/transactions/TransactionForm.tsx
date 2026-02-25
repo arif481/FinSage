@@ -73,6 +73,7 @@ export const TransactionForm = ({
   return (
     <form
       className="card stack"
+      style={{ borderColor: 'color-mix(in srgb, var(--primary) 25%, var(--border))', '--stagger': 1 } as React.CSSProperties}
       onSubmit={(event) => {
         void handleSubmit(async (values) => {
           await onSubmit(values)
@@ -84,7 +85,7 @@ export const TransactionForm = ({
       }}
     >
       <div className="form-header">
-        <h3>{initialTransaction ? 'Edit transaction' : 'Add transaction'}</h3>
+        <h3>{initialTransaction ? '✏️ Edit transaction' : '➕ Add transaction'}</h3>
         <p className="section-subtitle">
           Capture the transaction once. FinSage uses this data for budgets, reports, and AI
           insights.
@@ -149,6 +150,7 @@ export const TransactionForm = ({
             className="secondary-button"
             disabled={!description || isSubmitting || loading}
             type="button"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
             onClick={() => {
               if (!onRequestSuggestion || !description) {
                 return
@@ -157,6 +159,9 @@ export const TransactionForm = ({
               void onRequestSuggestion(description)
             }}
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+            </svg>
             Suggest category
           </button>
         </div>

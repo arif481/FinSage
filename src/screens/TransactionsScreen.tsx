@@ -156,6 +156,13 @@ export const TransactionsScreen = () => {
     downloadCsv('finsage-transactions.csv', csv)
   }
 
+  const insightData = [
+    { label: 'Month income', value: formatCurrency(monthIncome, currency) },
+    { label: 'Month expense', value: formatCurrency(monthExpense, currency) },
+    { label: 'Filtered transactions', value: String(filteredTransactions.length) },
+    { label: 'Filtered net', value: formatCurrency(filteredIncome - filteredExpense, currency) },
+  ]
+
   return (
     <main className="screen stack">
       {error ? (
@@ -164,7 +171,7 @@ export const TransactionsScreen = () => {
           are signed in.
         </p>
       ) : null}
-      <header className="screen-header">
+      <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
         <div>
           <h2>Transactions</h2>
           <p className="section-subtitle">Add, edit, and categorize daily expenses in seconds.</p>
@@ -172,22 +179,12 @@ export const TransactionsScreen = () => {
       </header>
 
       <section className="insight-strip">
-        <article className="insight-strip__item">
-          <small>Month income</small>
-          <strong>{formatCurrency(monthIncome, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Month expense</small>
-          <strong>{formatCurrency(monthExpense, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Filtered transactions</small>
-          <strong>{filteredTransactions.length}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Filtered net</small>
-          <strong>{formatCurrency(filteredIncome - filteredExpense, currency)}</strong>
-        </article>
+        {insightData.map((item, i) => (
+          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+            <small>{item.label}</small>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
       </section>
 
       <TransactionForm
@@ -204,7 +201,7 @@ export const TransactionsScreen = () => {
         onSubmit={handleSubmit}
       />
 
-      {aiStatus ? <p className="info-text info-text--highlight">{aiStatus}</p> : null}
+      {aiStatus ? <p className="info-text info-text--highlight" style={{ animation: 'fade-up 300ms ease both' }}>{aiStatus}</p> : null}
 
       <CsvImportExport
         disabled={loading}
@@ -213,9 +210,9 @@ export const TransactionsScreen = () => {
         onImport={handleImport}
       />
 
-      <section className="card field-row">
+      <section className="card field-row" style={{ '--stagger': 2 } as React.CSSProperties}>
         <label className="field">
-          <span>Search</span>
+          <span>🔍 Search</span>
           <input
             placeholder="Search description or tags"
             type="text"
@@ -225,7 +222,7 @@ export const TransactionsScreen = () => {
         </label>
 
         <label className="field">
-          <span>Category</span>
+          <span>📁 Category</span>
           <select
             value={selectedCategory}
             onChange={(event) => setSelectedCategory(event.target.value)}

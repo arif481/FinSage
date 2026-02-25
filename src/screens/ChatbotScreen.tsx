@@ -75,6 +75,13 @@ export const ChatbotScreen = () => {
     }
   }
 
+  const insightData = [
+    { label: 'Messages', value: String(messages.length) },
+    { label: 'Month transactions', value: String(currentMonthTransactions.length) },
+    { label: 'Month expense', value: formatCurrency(totalExpenses(currentMonthTransactions), currency) },
+    { label: 'Active budgets', value: String(currentMonthBudgets.length) },
+  ]
+
   return (
     <main className="screen stack">
       {error ? (
@@ -84,32 +91,27 @@ export const ChatbotScreen = () => {
         </p>
       ) : null}
       {chatError ? <p className="error-text">Chat history error: {chatError}</p> : null}
-      <header className="screen-header">
-        <div>
-          <h2>AI assistant</h2>
-          <p className="section-subtitle">
-            Natural-language insights for your spending and budget plan.
-          </p>
+      <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px var(--primary))' }}>
+            <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" /><path d="M18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75L18 15Z" />
+          </svg>
+          <div>
+            <h2>AI assistant</h2>
+            <p className="section-subtitle">
+              Natural-language insights for your spending and budget plan.
+            </p>
+          </div>
         </div>
       </header>
 
       <section className="insight-strip">
-        <article className="insight-strip__item">
-          <small>Messages</small>
-          <strong>{messages.length}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Month transactions</small>
-          <strong>{currentMonthTransactions.length}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Month expense</small>
-          <strong>{formatCurrency(totalExpenses(currentMonthTransactions), currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Active budgets</small>
-          <strong>{currentMonthBudgets.length}</strong>
-        </article>
+        {insightData.map((item, i) => (
+          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+            <small>{item.label}</small>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
       </section>
 
       <ChatWindow
@@ -118,7 +120,7 @@ export const ChatbotScreen = () => {
         quickPrompts={quickPrompts}
         onSendMessage={handleSendMessage}
       />
-      <p className="info-text">Powered by Gemini through Firebase AI Logic / Cloud Functions.</p>
+      <p className="info-text" style={{ animation: 'fade-up 400ms ease both 500ms' }}>Powered by Gemini through Firebase AI Logic / Cloud Functions.</p>
     </main>
   )
 }

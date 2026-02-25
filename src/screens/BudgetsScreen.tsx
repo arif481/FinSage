@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BudgetRadarChart } from '@/components/charts/BudgetRadarChart'
 import { BudgetPlanner } from '@/features/budgets/BudgetPlanner'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -6,6 +7,7 @@ import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { upsertBudget } from '@/services/firestore/budgets'
 import { budgetProgress } from '@/utils/finance'
 import { formatCurrency, toMonthKey } from '@/utils/format'
+import { showToast } from '@/components/common/Toast'
 
 export const BudgetsScreen = () => {
   const { user } = useAuth()
@@ -13,7 +15,6 @@ export const BudgetsScreen = () => {
   const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
   const [month, setMonth] = useState(toMonthKey(new Date().toISOString()))
   const [saving, setSaving] = useState(false)
-  const [status, setStatus] = useState<string | null>(null)
 
   const progress = budgetProgress(budgets, transactions, month)
   const totalLimit = progress.reduce((sum, item) => sum + item.limit, 0)
@@ -33,11 +34,18 @@ export const BudgetsScreen = () => {
 
     try {
       await upsertBudget(user.uid, payload)
-      setStatus('Budget saved successfully.')
+      showToast('Budget saved successfully.', 'success')
     } finally {
       setSaving(false)
     }
   }
+
+  const insightData = [
+    { label: 'Total planned budget', value: formatCurrency(totalLimit, currency) },
+    { label: 'Total spent', value: formatCurrency(totalSpent, currency) },
+    { label: 'Remaining', value: formatCurrency(totalLimit - totalSpent, currency) },
+    { label: 'Overspent categories', value: String(overspentCount) },
+  ]
 
   return (
     <main className="screen stack">
@@ -47,7 +55,7 @@ export const BudgetsScreen = () => {
           are signed in.
         </p>
       ) : null}
-      <header className="screen-header">
+      <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
         <div>
           <h2>Budget planner</h2>
           <p className="section-subtitle">
@@ -61,22 +69,22 @@ export const BudgetsScreen = () => {
       </header>
 
       <section className="insight-strip">
-        <article className="insight-strip__item">
-          <small>Total planned budget</small>
-          <strong>{formatCurrency(totalLimit, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Total spent</small>
-          <strong>{formatCurrency(totalSpent, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Remaining</small>
-          <strong>{formatCurrency(totalLimit - totalSpent, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Overspent categories</small>
-          <strong>{overspentCount}</strong>
-        </article>
+        {insightData.map((item, i) => (
+          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+            <small>{item.label}</small>
+            <strong style={{ color: i === 3 && overspentCount > 0 ? 'var(--danger)' : undefined }}>{item.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      {/* Budget Radar Chart */}
+      <section className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
+        <div className="chart-header">
+          <span className="chart-header__icon">🕸️</span>
+          <h3>Budget Utilization Radar</h3>
+        </div>
+        <p className="section-subtitle">Visualize how each category's spending compares to its budget limit.</p>
+        <BudgetRadarChart categories={categories} progress={progress} />
       </section>
 
       <BudgetPlanner
@@ -88,8 +96,6 @@ export const BudgetsScreen = () => {
         saving={saving || loading}
         onSaveBudget={handleSaveBudget}
       />
-
-      {status ? <p className="success-text">{status}</p> : null}
     </main>
   )
 }
