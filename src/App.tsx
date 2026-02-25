@@ -15,6 +15,9 @@ const TransactionsScreen = lazy(async () =>
 const BudgetsScreen = lazy(async () =>
   import('@/screens/BudgetsScreen').then((module) => ({ default: module.BudgetsScreen })),
 )
+const LoansScreen = lazy(async () =>
+  import('@/screens/LoansScreen').then((module) => ({ default: module.LoansScreen })),
+)
 const ChatbotScreen = lazy(async () =>
   import('@/screens/ChatbotScreen').then((module) => ({ default: module.ChatbotScreen })),
 )
@@ -79,6 +82,7 @@ function App() {
         <Route index element={withLoading('Loading dashboard...', <DashboardScreen />)} />
         <Route path="transactions" element={withLoading('Loading transactions...', <TransactionsScreen />)} />
         <Route path="budgets" element={withLoading('Loading budgets...', <BudgetsScreen />)} />
+        <Route path="loans" element={withLoading('Loading loans...', <LoansScreen />)} />
         <Route path="chat" element={withLoading('Loading assistant...', <ChatbotScreen />)} />
         <Route path="reports" element={withLoading('Loading reports...', <ReportsScreen />)} />
         <Route path="settings" element={withLoading('Loading settings...', <SettingsScreen />)} />

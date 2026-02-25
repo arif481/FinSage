@@ -66,3 +66,32 @@ export interface BudgetProgress {
   remaining: number
   percent: number
 }
+
+export type LoanDirection = 'borrowed' | 'lent'
+export type LoanStatus = 'active' | 'settled'
+
+export interface Loan {
+  id: string
+  person: string
+  amount: number
+  direction: LoanDirection
+  status: LoanStatus
+  description: string
+  dueDate?: string
+  settledDate?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface RecurringRule {
+  id: string
+  description: string
+  amount: number
+  type: TransactionType
+  categoryId: string
+  frequency: 'daily' | 'weekly' | 'monthly'
+  nextRun: string
+  active: boolean
+  createdAt?: string
+}
+

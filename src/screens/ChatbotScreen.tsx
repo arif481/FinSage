@@ -6,13 +6,20 @@ import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { askFinanceAssistant } from '@/services/ai/assistant'
 import { addChatMessage, subscribeChatHistory } from '@/services/firestore/chatHistory'
 import { ChatMessage } from '@/types/finance'
-import { totalExpenses, totalIncome } from '@/utils/finance'
-import { formatCurrency, toMonthKey } from '@/utils/format'
+import {
+  budgetProgress,
+  categoryComparison,
+  computeHealthScore,
+  monthOverMonthComparison,
+  totalExpenses,
+  totalIncome,
+} from '@/utils/finance'
+import { toMonthKey } from '@/utils/format'
 
 export const ChatbotScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { budgets, error, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loans, transactions } = useFinanceCollections(user?.uid)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [sending, setSending] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
@@ -33,94 +40,117 @@ export const ChatbotScreen = () => {
   }, [user])
 
   const contextText = useMemo(() => {
+    const monthExpenses = totalExpenses(currentMonthTransactions)
+    const monthIncome = totalIncome(currentMonthTransactions)
+    const progress = budgetProgress(budgets, transactions, currentMonth)
+    const overBudget = progress.filter((p) => p.remaining < 0)
+    const healthScore = computeHealthScore(transactions, budgets, currentMonth)
+    const monthComp = monthOverMonthComparison(transactions, currentMonth)
+    const categoryBars = categoryComparison(transactions, categories)
+    const activeLoans = loans.filter((l) => l.status === 'active')
+    const totalBorrowed = activeLoans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + l.amount, 0)
+    const totalLent = activeLoans.filter((l) => l.direction === 'lent').reduce((s, l) => s + l.amount, 0)
+
     return JSON.stringify({
-      budgetCount: currentMonthBudgets.length,
       month: currentMonth,
-      monthExpenses: totalExpenses(currentMonthTransactions),
-      monthIncome: totalIncome(currentMonthTransactions),
+      currency,
+      monthExpenses,
+      monthIncome,
+      savingsRate: monthIncome > 0 ? Math.round(((monthIncome - monthExpenses) / monthIncome) * 100) : 0,
       transactionCount: currentMonthTransactions.length,
+      budgetCount: currentMonthBudgets.length,
+      overBudgetCategories: overBudget.map((p) => ({
+        category: categories.find((c) => c.id === p.categoryId)?.name ?? p.categoryId,
+        overspent: Math.abs(p.remaining),
+        percent: p.percent,
+      })),
+      healthScore: { total: healthScore.totalScore, grade: healthScore.grade },
+      monthComparison: monthComp,
+      topCategories: categoryBars.slice(0, 5).map((c) => ({ name: c.name, amount: c.amount, pct: c.percentage })),
+      loans: {
+        totalBorrowed,
+        totalLent,
+        netPosition: totalLent - totalBorrowed,
+        activeCount: activeLoans.length,
+        overdueCount: activeLoans.filter((l) => l.dueDate && new Date(l.dueDate) < new Date()).length,
+        people: activeLoans.map((l) => ({ person: l.person, amount: l.amount, direction: l.direction, dueDate: l.dueDate })),
+      },
+      totalTransactions: transactions.length,
+      totalMonthsTracked: new Set(transactions.map((t) => toMonthKey(t.date))).size,
     })
-  }, [currentMonth, currentMonthBudgets.length, currentMonthTransactions])
+  }, [currentMonth, currentMonthBudgets.length, currentMonthTransactions, transactions, budgets, categories, loans, currency])
 
   const quickPrompts = [
-    'How much did I spend this month compared with my budget?',
-    'Which category should I cut first to save 10% next month?',
-    'Give me a 3-step plan to reduce discretionary spending this week.',
+    'What\'s my financial health score and what should I improve?',
+    'Give me a personalized savings plan based on my spending patterns.',
+    'Which category should I cut first to save 20% more?',
+    'Analyze my spending anomalies and suggest fixes.',
+    'How much do I owe people vs how much people owe me?',
+    'Give me a weekly spending challenge to stay under budget.',
   ]
 
-  const handleSendMessage = async (prompt: string) => {
-    if (!user) {
+  const onSend = async (text: string) => {
+    if (!user || sending) {
       return
     }
 
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
     setSending(true)
+    setChatError(null)
 
     try {
-      await addChatMessage(user.uid, { content: prompt, role: 'user' })
+      await addChatMessage(user.uid, userMessage)
 
-      const answer = await askFinanceAssistant(
-        messages
-          .slice(-8)
-          .map((message) => ({
-            role: message.role,
-            content: message.content,
-          }))
-          .concat([{ role: 'user', content: prompt }]),
-        contextText,
-      )
+      const history = [...messages, userMessage].map(({ content, role }) => ({
+        content,
+        role: role as 'user' | 'assistant',
+      }))
 
-      await addChatMessage(user.uid, { content: answer, role: 'assistant' })
+      const reply = await askFinanceAssistant(history, contextText)
+
+      const assistantMessage: ChatMessage = {
+        id: `msg-${Date.now()}-reply`,
+        role: 'assistant',
+        content: reply,
+        timestamp: new Date().toISOString(),
+      }
+
+      await addChatMessage(user.uid, assistantMessage)
+    } catch (sendError) {
+      setChatError(sendError instanceof Error ? sendError.message : 'Something went wrong')
     } finally {
       setSending(false)
     }
   }
 
-  const insightData = [
-    { label: 'Messages', value: String(messages.length) },
-    { label: 'Month transactions', value: String(currentMonthTransactions.length) },
-    { label: 'Month expense', value: formatCurrency(totalExpenses(currentMonthTransactions), currency) },
-    { label: 'Active budgets', value: String(currentMonthBudgets.length) },
-  ]
-
   return (
-    <main className="screen stack">
-      {error ? (
-        <p className="error-text">
-          Data access error: {error}. Confirm Firestore rules are deployed for your project and you
-          are signed in.
-        </p>
-      ) : null}
-      {chatError ? <p className="error-text">Chat history error: {chatError}</p> : null}
+    <main className="screen stack" style={{ height: '100%' }}>
       <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px var(--primary))' }}>
-            <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" /><path d="M18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75L18 15Z" />
-          </svg>
-          <div>
-            <h2>AI assistant</h2>
-            <p className="section-subtitle">
-              Natural-language insights for your spending and budget plan.
-            </p>
-          </div>
+        <div>
+          <h2>FinSage Assistant</h2>
+          <p className="section-subtitle">
+            AI-powered insights. Knows your spending, budgets, health score, and loans.
+          </p>
         </div>
       </header>
 
-      <section className="insight-strip">
-        {insightData.map((item, i) => (
-          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
-            <small>{item.label}</small>
-            <strong>{item.value}</strong>
-          </article>
-        ))}
-      </section>
+      {(error ?? chatError) ? (
+        <p className="error-text">{error ?? chatError}</p>
+      ) : null}
 
       <ChatWindow
-        loading={sending}
         messages={messages}
+        onSendMessage={onSend}
         quickPrompts={quickPrompts}
-        onSendMessage={handleSendMessage}
+        loading={sending}
       />
-      <p className="info-text" style={{ animation: 'fade-up 400ms ease both 500ms' }}>Powered by Gemini through Firebase AI Logic / Cloud Functions.</p>
     </main>
   )
 }
