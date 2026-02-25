@@ -64,8 +64,7 @@ export const BudgetRadarChart = ({ categories, progress }: BudgetRadarChartProps
                             color: 'var(--text)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                         }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={((value: number) => [`${value ?? 0}%`, 'Usage']) as any}
+                        formatter={(value: number | string | undefined) => [`${value ?? 0}%`, 'Usage']}
                     />
                 </RadarChart>
             </ResponsiveContainer>
