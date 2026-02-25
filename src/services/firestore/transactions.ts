@@ -36,6 +36,7 @@ const toTransaction = (id: string, data: Record<string, unknown>): FinanceTransa
     description: mapStringField(data.description),
     tags: mapStringArray(data.tags),
     type: rawType === 'income' ? 'income' : 'expense',
+    linkedLoanId: data.linkedLoanId ? mapStringField(data.linkedLoanId) : undefined,
     createdAt: mapIsoDate(data.createdAt),
     updatedAt: mapIsoDate(data.updatedAt),
   }

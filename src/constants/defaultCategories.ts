@@ -9,5 +9,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'entertainment', name: 'Entertainment', icon: 'film', color: '#6d597a' },
   { id: 'health', name: 'Health', icon: 'heart', color: '#2b9348' },
   { id: 'salary', name: 'Salary', icon: 'wallet', color: '#1d7874' },
+  { id: 'loans', name: 'Loans & Debt', icon: 'landmark', color: '#855928' },
   { id: 'other', name: 'Other', icon: 'dot', color: '#8f95a1' },
 ]

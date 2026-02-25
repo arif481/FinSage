@@ -29,6 +29,7 @@ const toLoan = (id: string, data: Record<string, unknown>): Loan => {
         id,
         person: mapStringField(data.person),
         amount: mapNumberField(data.amount),
+        repaidAmount: mapNumberField(data.repaidAmount, 0),
         direction: (rawDirection === 'lent' ? 'lent' : 'borrowed') as LoanDirection,
         status: (rawStatus === 'settled' ? 'settled' : 'active') as LoanStatus,
         description: mapStringField(data.description),
@@ -62,12 +63,13 @@ export const subscribeLoans = (
 
 export type LoanInput = Omit<Loan, 'id' | 'createdAt' | 'updatedAt'>
 
-export const addLoan = async (uid: string, payload: LoanInput): Promise<void> => {
-    await addDoc(collection(db, userSubcollectionPath(uid, collectionName)), {
+export const addLoan = async (uid: string, payload: LoanInput): Promise<string> => {
+    const docRef = await addDoc(collection(db, userSubcollectionPath(uid, collectionName)), {
         ...payload,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     })
+    return docRef.id
 }
 
 export const updateLoan = async (
