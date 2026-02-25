@@ -367,6 +367,7 @@ export interface FinancialHealthResult {
   grade: string
   gradeEmoji: string
   breakdown: HealthScoreBreakdown[]
+  isEmpty: boolean
 }
 
 /** Composite financial health score 0-100 based on 5 weighted factors */
@@ -379,6 +380,23 @@ export const computeHealthScore = (
   const expenses = monthTxns.filter((t) => t.type === 'expense')
   const totalExp = expenses.reduce((s, t) => s + Math.abs(t.amount), 0)
   const totalInc = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+
+  // No data at all — return empty
+  if (monthTxns.length === 0) {
+    return {
+      totalScore: 0,
+      grade: '—',
+      gradeEmoji: '📭',
+      isEmpty: true,
+      breakdown: [
+        { label: 'Savings Rate', score: 0, maxScore: 25, icon: '💰', tone: 'danger' },
+        { label: 'Budget Discipline', score: 0, maxScore: 25, icon: '📋', tone: 'danger' },
+        { label: 'Tracking Consistency', score: 0, maxScore: 20, icon: '📊', tone: 'danger' },
+        { label: 'Spending Diversity', score: 0, maxScore: 15, icon: '🎯', tone: 'danger' },
+        { label: 'Month Trend', score: 0, maxScore: 15, icon: '📈', tone: 'danger' },
+      ],
+    }
+  }
 
   const breakdown: HealthScoreBreakdown[] = []
 
@@ -397,7 +415,7 @@ export const computeHealthScore = (
     }).length
     budgetScore = Math.round((withinBudget / monthBudgets.length) * 25)
   } else {
-    budgetScore = 12
+    budgetScore = 0
   }
   breakdown.push({ label: 'Budget Discipline', score: budgetScore, maxScore: 25, icon: '📋', tone: budgetScore >= 18 ? 'good' : budgetScore >= 10 ? 'warning' : 'danger' })
 
@@ -413,13 +431,13 @@ export const computeHealthScore = (
   const catTotals = new Map<string, number>()
   for (const e of expenses) catTotals.set(e.categoryId, (catTotals.get(e.categoryId) ?? 0) + Math.abs(e.amount))
   const topCatPct = totalExp > 0 ? Math.max(...Array.from(catTotals.values())) / totalExp : 0
-  const diversityScore = totalExp > 0 ? Math.round((1 - topCatPct) * 15) : 8
+  const diversityScore = totalExp > 0 ? Math.round((1 - topCatPct) * 15) : 0
   breakdown.push({ label: 'Spending Diversity', score: Math.max(diversityScore, 0), maxScore: 15, icon: '🎯', tone: diversityScore >= 10 ? 'good' : diversityScore >= 5 ? 'warning' : 'danger' })
 
   // 5. Trend improvement (0-15 pts) - spending less than previous month
   const allMonths = monthlyTrend(transactions)
   const currentIdx = allMonths.findIndex((m) => m.month === monthKey)
-  let trendScore = 8
+  let trendScore = 0
   if (currentIdx > 0) {
     const prevExp = allMonths[currentIdx - 1].expense
     const curExp = allMonths[currentIdx].expense
@@ -434,7 +452,7 @@ export const computeHealthScore = (
   const grade = totalScore >= 85 ? 'A+' : totalScore >= 75 ? 'A' : totalScore >= 65 ? 'B+' : totalScore >= 55 ? 'B' : totalScore >= 45 ? 'C' : totalScore >= 35 ? 'D' : 'F'
   const gradeEmoji = totalScore >= 75 ? '🌟' : totalScore >= 55 ? '👍' : totalScore >= 35 ? '⚡' : '🔴'
 
-  return { totalScore, grade, gradeEmoji, breakdown }
+  return { totalScore, grade, gradeEmoji, breakdown, isEmpty: false }
 }
 
 export interface SpendingAnomaly {

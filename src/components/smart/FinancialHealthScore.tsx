@@ -5,6 +5,19 @@ interface FinancialHealthScoreProps {
 }
 
 export const FinancialHealthScore = ({ result }: FinancialHealthScoreProps) => {
+    if (result.isEmpty) {
+        return (
+            <div className="health-score" style={{ justifyContent: 'center', textAlign: 'center', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '2.5rem' }}>📭</span>
+                    <p style={{ color: 'var(--text-muted)', maxWidth: '280px' }}>
+                        Start logging transactions this month to see your Financial Health Score.
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
     const circumference = 2 * Math.PI * 54
     const strokeDashoffset = circumference - (circumference * result.totalScore) / 100
 
