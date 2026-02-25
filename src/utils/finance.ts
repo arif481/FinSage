@@ -351,3 +351,276 @@ export const generateSmartInsights = (
 
   return insights
 }
+
+/* ── Phase 2: Advanced Smart Features ── */
+
+export interface HealthScoreBreakdown {
+  label: string
+  score: number
+  maxScore: number
+  icon: string
+  tone: 'good' | 'warning' | 'danger'
+}
+
+export interface FinancialHealthResult {
+  totalScore: number
+  grade: string
+  gradeEmoji: string
+  breakdown: HealthScoreBreakdown[]
+}
+
+/** Composite financial health score 0-100 based on 5 weighted factors */
+export const computeHealthScore = (
+  transactions: FinanceTransaction[],
+  budgets: Budget[],
+  monthKey: string,
+): FinancialHealthResult => {
+  const monthTxns = transactions.filter((t) => toMonthKey(t.date) === monthKey)
+  const expenses = monthTxns.filter((t) => t.type === 'expense')
+  const totalExp = expenses.reduce((s, t) => s + Math.abs(t.amount), 0)
+  const totalInc = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+
+  const breakdown: HealthScoreBreakdown[] = []
+
+  // 1. Savings rate (0-25 pts)
+  const savingsRate = totalInc > 0 ? (totalInc - totalExp) / totalInc : 0
+  const savingsScore = Math.min(Math.round(savingsRate * 100), 25)
+  breakdown.push({ label: 'Savings Rate', score: Math.max(savingsScore, 0), maxScore: 25, icon: '💰', tone: savingsScore >= 15 ? 'good' : savingsScore >= 8 ? 'warning' : 'danger' })
+
+  // 2. Budget adherence (0-25 pts)
+  const monthBudgets = budgets.filter((b) => b.month === monthKey)
+  let budgetScore = 0
+  if (monthBudgets.length > 0) {
+    const withinBudget = monthBudgets.filter((b) => {
+      const spent = expenses.filter((e) => e.categoryId === b.categoryId).reduce((s, e) => s + Math.abs(e.amount), 0)
+      return spent <= b.limit
+    }).length
+    budgetScore = Math.round((withinBudget / monthBudgets.length) * 25)
+  } else {
+    budgetScore = 12
+  }
+  breakdown.push({ label: 'Budget Discipline', score: budgetScore, maxScore: 25, icon: '📋', tone: budgetScore >= 18 ? 'good' : budgetScore >= 10 ? 'warning' : 'danger' })
+
+  // 3. Consistency (0-20 pts) - logging transactions regularly
+  const activeDays = new Set(monthTxns.map((t) => t.date.slice(0, 10))).size
+  const today = new Date()
+  const daysSoFar = today.getDate()
+  const consistencyRatio = daysSoFar > 0 ? activeDays / daysSoFar : 0
+  const consistencyScore = Math.min(Math.round(consistencyRatio * 30), 20)
+  breakdown.push({ label: 'Tracking Consistency', score: consistencyScore, maxScore: 20, icon: '📊', tone: consistencyScore >= 14 ? 'good' : consistencyScore >= 8 ? 'warning' : 'danger' })
+
+  // 4. Diversification (0-15 pts) - not spending too much on one category
+  const catTotals = new Map<string, number>()
+  for (const e of expenses) catTotals.set(e.categoryId, (catTotals.get(e.categoryId) ?? 0) + Math.abs(e.amount))
+  const topCatPct = totalExp > 0 ? Math.max(...Array.from(catTotals.values())) / totalExp : 0
+  const diversityScore = totalExp > 0 ? Math.round((1 - topCatPct) * 15) : 8
+  breakdown.push({ label: 'Spending Diversity', score: Math.max(diversityScore, 0), maxScore: 15, icon: '🎯', tone: diversityScore >= 10 ? 'good' : diversityScore >= 5 ? 'warning' : 'danger' })
+
+  // 5. Trend improvement (0-15 pts) - spending less than previous month
+  const allMonths = monthlyTrend(transactions)
+  const currentIdx = allMonths.findIndex((m) => m.month === monthKey)
+  let trendScore = 8
+  if (currentIdx > 0) {
+    const prevExp = allMonths[currentIdx - 1].expense
+    const curExp = allMonths[currentIdx].expense
+    if (prevExp > 0) {
+      const change = (curExp - prevExp) / prevExp
+      trendScore = change <= -0.1 ? 15 : change <= 0 ? 12 : change <= 0.1 ? 8 : 4
+    }
+  }
+  breakdown.push({ label: 'Month Trend', score: trendScore, maxScore: 15, icon: '📈', tone: trendScore >= 12 ? 'good' : trendScore >= 8 ? 'warning' : 'danger' })
+
+  const totalScore = breakdown.reduce((s, b) => s + b.score, 0)
+  const grade = totalScore >= 85 ? 'A+' : totalScore >= 75 ? 'A' : totalScore >= 65 ? 'B+' : totalScore >= 55 ? 'B' : totalScore >= 45 ? 'C' : totalScore >= 35 ? 'D' : 'F'
+  const gradeEmoji = totalScore >= 75 ? '🌟' : totalScore >= 55 ? '👍' : totalScore >= 35 ? '⚡' : '🔴'
+
+  return { totalScore, grade, gradeEmoji, breakdown }
+}
+
+export interface SpendingAnomaly {
+  transaction: FinanceTransaction
+  categoryAvg: number
+  deviation: number
+  reason: string
+}
+
+/** Detects spending anomalies — transactions significantly above category average */
+export const detectAnomalies = (transactions: FinanceTransaction[]): SpendingAnomaly[] => {
+  const expenses = transactions.filter((t) => t.type === 'expense')
+
+  // Build category averages
+  const catExpenses = new Map<string, number[]>()
+  for (const e of expenses) {
+    const list = catExpenses.get(e.categoryId) ?? []
+    list.push(Math.abs(e.amount))
+    catExpenses.set(e.categoryId, list)
+  }
+
+  const anomalies: SpendingAnomaly[] = []
+
+  for (const e of expenses) {
+    const amounts = catExpenses.get(e.categoryId) ?? []
+    if (amounts.length < 3) continue
+
+    const avg = amounts.reduce((s, a) => s + a, 0) / amounts.length
+    const deviation = Math.abs(e.amount) / avg
+
+    if (deviation >= 2.5) {
+      anomalies.push({
+        transaction: e,
+        categoryAvg: Math.round(avg * 100) / 100,
+        deviation: Math.round(deviation * 10) / 10,
+        reason: `${deviation.toFixed(1)}x above category average (${Math.round(avg)})`,
+      })
+    }
+  }
+
+  return anomalies.sort((a, b) => b.deviation - a.deviation).slice(0, 8)
+}
+
+export interface MonthComparisonItem {
+  label: string
+  current: number
+  previous: number
+  change: number
+  changePct: number
+}
+
+/** Compare current month vs previous month across key metrics */
+export const monthOverMonthComparison = (
+  transactions: FinanceTransaction[],
+  currentMonthKey: string,
+): MonthComparisonItem[] => {
+  const [year, month] = currentMonthKey.split('-').map(Number)
+  const prevDate = new Date(year, month - 2, 1)
+  const prevMonthKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+
+  const curTxns = transactions.filter((t) => toMonthKey(t.date) === currentMonthKey)
+  const prevTxns = transactions.filter((t) => toMonthKey(t.date) === prevMonthKey)
+
+  const curExp = curTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0)
+  const prevExp = prevTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0)
+  const curInc = curTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const prevInc = prevTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const curTxnCount = curTxns.length
+  const prevTxnCount = prevTxns.length
+
+  const pct = (cur: number, prev: number) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : 0
+
+  return [
+    { label: 'Total Expenses', current: curExp, previous: prevExp, change: curExp - prevExp, changePct: pct(curExp, prevExp) },
+    { label: 'Total Income', current: curInc, previous: prevInc, change: curInc - prevInc, changePct: pct(curInc, prevInc) },
+    { label: 'Net Savings', current: curInc - curExp, previous: prevInc - prevExp, change: (curInc - curExp) - (prevInc - prevExp), changePct: pct(curInc - curExp, prevInc - prevExp) },
+    { label: 'Transactions', current: curTxnCount, previous: prevTxnCount, change: curTxnCount - prevTxnCount, changePct: pct(curTxnCount, prevTxnCount) },
+  ]
+}
+
+export interface Achievement {
+  id: string
+  icon: string
+  title: string
+  description: string
+  unlocked: boolean
+  progress: number // 0-100
+}
+
+/** Generate gamification achievements based on financial behavior */
+export const computeAchievements = (
+  transactions: FinanceTransaction[],
+  budgets: Budget[],
+  monthKey: string,
+): Achievement[] => {
+  const monthTxns = transactions.filter((t) => toMonthKey(t.date) === monthKey)
+  const expenses = monthTxns.filter((t) => t.type === 'expense')
+  const totalExp = expenses.reduce((s, t) => s + Math.abs(t.amount), 0)
+  const totalInc = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const activeDays = new Set(monthTxns.map((t) => t.date.slice(0, 10))).size
+  const monthBudgets = budgets.filter((b) => b.month === monthKey)
+
+  const savingsRate = totalInc > 0 ? ((totalInc - totalExp) / totalInc) * 100 : 0
+  const withinBudget = monthBudgets.filter((b) => {
+    const spent = expenses.filter((e) => e.categoryId === b.categoryId).reduce((s, e) => s + Math.abs(e.amount), 0)
+    return spent <= b.limit
+  }).length
+
+  return [
+    {
+      id: 'first-log', icon: '✏️', title: 'First Log',
+      description: 'Record your first transaction',
+      unlocked: transactions.length > 0,
+      progress: Math.min(transactions.length > 0 ? 100 : 0, 100),
+    },
+    {
+      id: 'week-streak', icon: '🔥', title: '7-Day Streak',
+      description: 'Log transactions 7 days this month',
+      unlocked: activeDays >= 7,
+      progress: Math.min(Math.round((activeDays / 7) * 100), 100),
+    },
+    {
+      id: 'saver-20', icon: '🏆', title: 'Super Saver',
+      description: 'Achieve a 20% or higher savings rate',
+      unlocked: savingsRate >= 20,
+      progress: Math.min(Math.round(savingsRate / 20 * 100), 100),
+    },
+    {
+      id: 'budget-master', icon: '🎯', title: 'Budget Master',
+      description: 'Stay within all set budgets this month',
+      unlocked: monthBudgets.length > 0 && withinBudget === monthBudgets.length,
+      progress: monthBudgets.length > 0 ? Math.round((withinBudget / monthBudgets.length) * 100) : 0,
+    },
+    {
+      id: 'century', icon: '💯', title: 'Century Club',
+      description: 'Record 100 total transactions',
+      unlocked: transactions.length >= 100,
+      progress: Math.min(Math.round((transactions.length / 100) * 100), 100),
+    },
+    {
+      id: 'diversifier', icon: '🌈', title: 'Diversifier',
+      description: 'Log expenses in 5+ categories this month',
+      unlocked: new Set(expenses.map((e) => e.categoryId)).size >= 5,
+      progress: Math.min(Math.round((new Set(expenses.map((e) => e.categoryId)).size / 5) * 100), 100),
+    },
+  ]
+}
+
+export interface CashFlowItem {
+  name: string
+  value: number
+  fill: string
+  isIncome: boolean
+}
+
+/** Generates waterfall data: income on top, then each expense category subtracting */
+export const cashFlowWaterfall = (
+  transactions: FinanceTransaction[],
+  categories: { id: string; name: string; color: string }[],
+  monthKey: string,
+): CashFlowItem[] => {
+  const monthTxns = transactions.filter((t) => toMonthKey(t.date) === monthKey)
+  const totalInc = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expenses = monthTxns.filter((t) => t.type === 'expense')
+
+  const catTotals = new Map<string, number>()
+  for (const e of expenses) catTotals.set(e.categoryId, (catTotals.get(e.categoryId) ?? 0) + Math.abs(e.amount))
+
+  const items: CashFlowItem[] = [
+    { name: 'Income', value: Math.round(totalInc * 100) / 100, fill: 'var(--success)', isIncome: true },
+  ]
+
+  const sorted = Array.from(catTotals.entries()).sort((a, b) => b[1] - a[1])
+  for (const [catId, amount] of sorted) {
+    const cat = categories.find((c) => c.id === catId)
+    items.push({
+      name: cat?.name ?? 'Other',
+      value: Math.round(amount * 100) / 100,
+      fill: cat?.color ?? '#8f95a1',
+      isIncome: false,
+    })
+  }
+
+  const netSavings = totalInc - expenses.reduce((s, e) => s + Math.abs(e.amount), 0)
+  items.push({ name: 'Net Savings', value: Math.round(netSavings * 100) / 100, fill: netSavings >= 0 ? 'var(--success)' : 'var(--danger)', isIncome: false })
+
+  return items
+}
+
