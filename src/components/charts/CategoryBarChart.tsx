@@ -46,11 +46,10 @@ export const CategoryBarChart = ({ data, currency = '' }: CategoryBarChartProps)
                             color: 'var(--text)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                         }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={((value: number, _name: string, props: { payload: CategoryComparisonItem }) => [
-                            `${currency}${(value ?? 0).toFixed(2)} (${props.payload.percentage}%)`,
+                        formatter={(value: number | string | undefined, _name: string | undefined, props: { payload?: CategoryComparisonItem }) => [
+                            `${currency}${Number(value ?? 0).toFixed(2)} (${props.payload?.percentage ?? 0}%)`,
                             'Spent',
-                        ]) as any}
+                        ]}
                     />
                     <Bar
                         dataKey="amount"

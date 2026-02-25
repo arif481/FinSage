@@ -292,7 +292,7 @@ export const generateSmartInsights = (
       icon: '📈',
       title: 'Spending Velocity',
       description: totalBudget > 0 && projectedTotal > totalBudget
-        ? `At this pace, you\'ll exceed your ${Math.round(projectedTotal / totalBudget * 100)}% of budget by month end.`
+        ? `At this pace, you'll exceed your ${Math.round(projectedTotal / totalBudget * 100)}% of budget by month end.`
         : `Averaging ${Math.round(dailyAvg)} per day. Projected monthly total: ${Math.round(projectedTotal)}.`,
       tone: totalBudget > 0 && projectedTotal > totalBudget ? 'danger' : 'primary',
       value: `${Math.round(dailyAvg)}/day`,

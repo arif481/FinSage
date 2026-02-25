@@ -40,11 +40,10 @@ export const WeekdayBarChart = ({ data }: WeekdayBarChartProps) => {
                             color: 'var(--text)',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                         }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={((value: number, _name: string, props: { payload: WeekdaySpendingPoint }) => [
-                            `${(value ?? 0).toFixed(2)} (${props.payload.count} txns, avg: ${props.payload.average.toFixed(2)})`,
-                            props.payload.day,
-                        ]) as any}
+                        formatter={(value: number | string | undefined, _name: string | undefined, props: { payload?: WeekdaySpendingPoint }) => [
+                            `${Number(value ?? 0).toFixed(2)} (${props.payload?.count ?? 0} txns, avg: ${props.payload?.average.toFixed(2) ?? '0'})`,
+                            props.payload?.day ?? '',
+                        ]}
                     />
                     <Bar
                         dataKey="amount"
