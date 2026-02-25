@@ -1,21 +1,38 @@
+import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
+import { DailySpendingChart } from '@/components/charts/DailySpendingChart'
 import { SpendingPieChart } from '@/components/charts/SpendingPieChart'
+import { SpendingHeatmap } from '@/components/charts/SpendingHeatmap'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
+import { WeekdayBarChart } from '@/components/charts/WeekdayBarChart'
+import { SavingsGauge } from '@/components/charts/SavingsGauge'
+import { SmartInsightsPanel } from '@/components/charts/SmartInsightsPanel'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
-import { monthlyTrend, spendingByCategory } from '@/utils/finance'
-import { formatCurrency } from '@/utils/format'
+import {
+  categoryComparison,
+  dailySpending,
+  generateSmartInsights,
+  monthlyTrend,
+  spendingByCategory,
+  spendingHeatmap,
+  totalExpenses,
+  totalIncome,
+  weekdayAnalysis,
+} from '@/utils/finance'
+import { formatCurrency, toMonthKey } from '@/utils/format'
 
 export const ReportsScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { categories, error, loading, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
     return <LoadingScreen label="Building your reports..." />
   }
 
+  const currentMonth = toMonthKey(new Date().toISOString())
   const trendData = monthlyTrend(transactions)
   const categoryData = spendingByCategory(transactions)
     .map((item) => {
@@ -35,23 +52,41 @@ export const ReportsScreen = () => {
   const expenseDelta =
     latestMonth && previousMonth ? latestMonth.expense - previousMonth.expense : null
 
-  const insightLines: string[] = []
+  // Smart data
+  const dailyData = dailySpending(transactions, currentMonth)
+  const weekdayData = weekdayAnalysis(transactions)
+  const heatmapCells = spendingHeatmap(transactions, currentMonth)
+  const categoryBars = categoryComparison(transactions, categories)
+  const smartInsights = generateSmartInsights(transactions, budgets, currentMonth)
+  const monthExpenses = totalExpenses(transactions.filter((t) => toMonthKey(t.date) === currentMonth))
+  const monthIncome = totalIncome(transactions.filter((t) => toMonthKey(t.date) === currentMonth))
+
+  const insightData = [
+    { label: 'Tracked months', value: String(trendData.length) },
+    { label: 'Top category', value: topCategory ? topCategory.label : 'No data yet' },
+    { label: 'Latest month expense', value: formatCurrency(latestMonth?.expense ?? 0, currency) },
+    { label: 'Latest month income', value: formatCurrency(latestMonth?.income ?? 0, currency) },
+  ]
+
+  const insightLines: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
   if (topCategory) {
-    insightLines.push(
-      `Highest spending category is ${topCategory.label} (${formatCurrency(topCategory.value, currency)}).`,
-    )
+    insightLines.push({
+      text: `Highest spending category is ${topCategory.label} (${formatCurrency(topCategory.value, currency)}).`,
+      tone: 'primary',
+    })
   }
 
   if (expenseDelta !== null) {
     const direction = expenseDelta > 0 ? 'up' : 'down'
-    insightLines.push(
-      `Monthly expenses are ${direction} by ${formatCurrency(Math.abs(expenseDelta), currency)} versus previous month.`,
-    )
+    insightLines.push({
+      text: `Monthly expenses are ${direction} by ${formatCurrency(Math.abs(expenseDelta), currency)} versus previous month.`,
+      tone: expenseDelta > 0 ? 'warning' : 'good',
+    })
   }
 
   if (trendData.length < 2) {
-    insightLines.push('Keep logging transactions for stronger month-over-month insights.')
+    insightLines.push({ text: 'Keep logging transactions for stronger month-over-month insights.', tone: 'primary' })
   }
 
   return (
@@ -62,7 +97,7 @@ export const ReportsScreen = () => {
           are signed in.
         </p>
       ) : null}
-      <header className="screen-header">
+      <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
         <div>
           <h2>Insights and reports</h2>
           <p className="section-subtitle">
@@ -72,42 +107,92 @@ export const ReportsScreen = () => {
       </header>
 
       <section className="insight-strip">
-        <article className="insight-strip__item">
-          <small>Tracked months</small>
-          <strong>{trendData.length}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Top category</small>
-          <strong>{topCategory ? topCategory.label : 'No data yet'}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Latest month expense</small>
-          <strong>{formatCurrency(latestMonth?.expense ?? 0, currency)}</strong>
-        </article>
-        <article className="insight-strip__item">
-          <small>Latest month income</small>
-          <strong>{formatCurrency(latestMonth?.income ?? 0, currency)}</strong>
-        </article>
+        {insightData.map((item, i) => (
+          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+            <small>{item.label}</small>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
       </section>
 
+      {/* Smart Insights */}
+      <section>
+        <h3 style={{ marginBottom: '0.5rem' }}>🧠 Smart Insights</h3>
+        <SmartInsightsPanel insights={smartInsights} />
+      </section>
+
+      {/* Savings + Daily Spending */}
       <section className="grid-two">
-        <div className="card stack">
-          <h3>Spending share</h3>
+        <div className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">💰</span>
+            <h3>Savings Rate</h3>
+          </div>
+          <SavingsGauge income={monthIncome} expenses={monthExpenses} />
+        </div>
+
+        <div className="card stack" style={{ '--stagger': 2 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📈</span>
+            <h3>Daily Spending Trend</h3>
+          </div>
+          <DailySpendingChart data={dailyData} currency={currency} />
+        </div>
+      </section>
+
+      {/* Pie + Category Bar */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">🍩</span>
+            <h3>Spending Share</h3>
+          </div>
           <SpendingPieChart data={categoryData} />
         </div>
 
-        <div className="card stack">
-          <h3>Monthly trend</h3>
-          <TrendLineChart data={trendData} />
+        <div className="card stack" style={{ '--stagger': 4 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📊</span>
+            <h3>Category Comparison</h3>
+          </div>
+          <CategoryBarChart data={categoryBars} currency={currency} />
         </div>
       </section>
 
-      <section className="card stack">
+      {/* Weekday + Heatmap */}
+      <section className="grid-two">
+        <div className="card stack" style={{ '--stagger': 5 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">📊</span>
+            <h3>Spending by Day of Week</h3>
+          </div>
+          <WeekdayBarChart data={weekdayData} />
+        </div>
+
+        <div className="card stack" style={{ '--stagger': 6 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">🗓️</span>
+            <h3>Spending Heatmap</h3>
+          </div>
+          <SpendingHeatmap cells={heatmapCells} currency={currency} />
+        </div>
+      </section>
+
+      {/* Monthly Trend */}
+      <section className="card stack" style={{ '--stagger': 7 } as React.CSSProperties}>
+        <div className="chart-header">
+          <span className="chart-header__icon">📉</span>
+          <h3>Monthly trend</h3>
+        </div>
+        <TrendLineChart data={trendData} />
+      </section>
+
+      <section className="card stack" style={{ '--stagger': 8 } as React.CSSProperties}>
         <h3>Summary</h3>
-        {insightLines.map((line) => (
-          <div key={line} className="signal-item">
-            <span className="signal-item__dot" aria-hidden="true" />
-            <p>{line}</p>
+        {insightLines.map((line, i) => (
+          <div key={line.text} className="signal-item" style={{ animation: `fade-up 400ms ease both ${i * 100}ms` }}>
+            <span className={`status-dot status-dot--${line.tone}`} aria-hidden="true" />
+            <p>{line.text}</p>
           </div>
         ))}
       </section>

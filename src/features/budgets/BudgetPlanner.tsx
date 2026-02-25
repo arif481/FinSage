@@ -60,11 +60,11 @@ export const BudgetPlanner = ({
   }
 
   return (
-    <div className="card stack">
-      <h3>Budget planner</h3>
+    <div className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
+      <h3>📋 Budget planner</h3>
       <p className="section-subtitle">Set category limits for {month}.</p>
 
-      {categories.map((category) => {
+      {categories.map((category, index) => {
         const categoryProgress = progress.find((item) => item.categoryId === category.id)
         const spent = categoryProgress?.spent ?? 0
         const limit = categoryProgress?.limit ?? limits[category.id] ?? 0
@@ -72,9 +72,12 @@ export const BudgetPlanner = ({
         const statusTone = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'good'
 
         return (
-          <div key={category.id} className="budget-row">
+          <div key={category.id} className="budget-row" style={{ animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${index * 60}ms` }}>
             <div className="budget-row__meta">
-              <strong>{category.name}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span className={`status-dot status-dot--${statusTone}`} />
+                <strong>{category.name}</strong>
+              </div>
               <span>
                 Spent {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
               </span>
@@ -101,7 +104,10 @@ export const BudgetPlanner = ({
                   max={100}
                   value={Math.min(percent, 100)}
                 />
-                <small>{Math.round(percent)}% used</small>
+                <small style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{Math.round(percent)}% used</span>
+                  {percent >= 100 && <span className="error-text" style={{ fontSize: '0.72rem' }}>Over budget!</span>}
+                </small>
               </div>
             </div>
           </div>
@@ -114,7 +120,7 @@ export const BudgetPlanner = ({
         type="button"
         onClick={() => void handleSave()}
       >
-        Save monthly budgets
+        {saving ? 'Saving...' : 'Save monthly budgets'}
       </button>
     </div>
   )

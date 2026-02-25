@@ -31,32 +31,39 @@ export const AuthScreen = () => {
 
   return (
     <main className="auth-layout" style={{ background: 'transparent' }}>
-      <section className="auth-card glass-panel" style={{ position: 'relative', zIndex: 1, animation: 'fade-up 600ms ease-out' }}>
-        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', background: 'radial-gradient(circle at center, color-mix(in srgb, var(--primary) 5%, transparent), transparent 70%)', zIndex: -1, pointerEvents: 'none', animation: 'pulse-glow 6s infinite alternate' }} />
+      {/* Animated floating particles */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', width: '300px', height: '300px', borderRadius: '50%', background: 'color-mix(in srgb, var(--primary) 15%, transparent)', filter: 'blur(80px)', top: '10%', left: '5%', animation: 'aurora-drift-1 12s infinite alternate ease-in-out' }} />
+        <div style={{ position: 'absolute', width: '250px', height: '250px', borderRadius: '50%', background: 'color-mix(in srgb, var(--success) 12%, transparent)', filter: 'blur(80px)', bottom: '15%', right: '10%', animation: 'aurora-drift-2 14s infinite alternate-reverse ease-in-out' }} />
+        <div style={{ position: 'absolute', width: '200px', height: '200px', borderRadius: '50%', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', filter: 'blur(60px)', top: '50%', right: '30%', animation: 'float 6s infinite ease-in-out' }} />
+      </div>
 
-        <p className="kicker glow-text" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.1s' }}>Secure onboarding</p>
-        <h1 className="glow-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.2s' }}>FinSage</h1>
-        <p className="section-subtitle" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.3s' }}>
+      <section className="auth-card glass-panel" style={{ position: 'relative', zIndex: 1, animation: 'scale-pop 600ms cubic-bezier(0.16, 1, 0.3, 1) both' }}>
+        <p className="kicker glow-text" style={{ animation: 'fade-up 400ms ease both 100ms' }}>Secure onboarding</p>
+        <h1 className="glow-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', animation: 'fade-up 400ms ease both 200ms' }}>
+          <span style={{ color: 'var(--primary)' }}>Fin</span>Sage
+        </h1>
+        <p className="section-subtitle" style={{ animation: 'fade-up 400ms ease both 300ms' }}>
           Production-grade personal finance platform for budgets, transactions, reporting, and AI
           assistance.
         </p>
 
-        <div className="auth-trust-grid" aria-label="Platform trust highlights" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.4s' }}>
-          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)' }}>
-            <small className="glow-text">Security</small>
+        <div className="auth-trust-grid" aria-label="Platform trust highlights" style={{ animation: 'fade-up 400ms ease both 400ms' }}>
+          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+            <small className="glow-text">🔒 Security</small>
             <strong>Firebase Auth</strong>
           </article>
-          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)' }}>
-            <small className="glow-text">Sync</small>
+          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+            <small className="glow-text">🔄 Sync</small>
             <strong>Realtime Firestore</strong>
           </article>
-          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)' }}>
-            <small className="glow-text">Insights</small>
+          <article className="glass-panel" style={{ border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+            <small className="glow-text">✨ Insights</small>
             <strong>Gemini AI</strong>
           </article>
         </div>
 
-        <div className="toggle-row" role="tablist" aria-label="Authentication mode" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.5s', display: 'flex', background: 'var(--bg-elevated)', borderRadius: '1rem', padding: '0.25rem' }}>
+        <div className="toggle-row" role="tablist" aria-label="Authentication mode" style={{ animation: 'fade-up 400ms ease both 500ms', display: 'flex', background: 'var(--bg-elevated)', borderRadius: '1rem', padding: '0.25rem' }}>
           <button
             className={mode === 'signin' ? 'primary-button' : 'ghost-button'}
             style={{ width: '50%', margin: 0 }}
@@ -75,9 +82,9 @@ export const AuthScreen = () => {
           </button>
         </div>
 
-        <form className="stack" onSubmit={(event) => void handleSubmit(event)} style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.6s' }}>
+        <form className="stack" onSubmit={(event) => void handleSubmit(event)} style={{ animation: 'fade-up 400ms ease both 600ms' }}>
           {mode === 'signup' ? (
-            <label className="field">
+            <label className="field" style={{ animation: 'fade-up 300ms ease both' }}>
               <span>Display name</span>
               <input
                 required
@@ -111,20 +118,27 @@ export const AuthScreen = () => {
             />
           </label>
 
-          {error ? <p className="error-text">{error}</p> : null}
+          {error ? <p className="error-text" style={{ animation: 'fade-up 200ms ease both' }}>{error}</p> : null}
 
           <button className="primary-button" disabled={submitting} type="submit" style={{ marginTop: '0.5rem', width: '100%' }}>
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
+            {submitting ? (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }} />
+                Processing...
+              </span>
+            ) : (
+              mode === 'signin' ? 'Sign in' : 'Create account'
+            )}
           </button>
         </form>
 
-        <div className="divider" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.7s' }}>or</div>
+        <div className="divider" style={{ animation: 'fade-up 400ms ease both 700ms' }}>or</div>
 
         <button
           className="secondary-button"
           disabled={submitting}
           type="button"
-          style={{ width: '100%', animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.8s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          style={{ width: '100%', animation: 'fade-up 400ms ease both 800ms', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           onClick={() => {
             void signInWithGoogle().catch((googleError) => {
               setError(googleError instanceof Error ? googleError.message : 'Google sign-in failed')
@@ -135,7 +149,7 @@ export const AuthScreen = () => {
           Continue with Google
         </button>
 
-        <div className="auth-meta" style={{ animation: 'stagger-fade-in 0.4s ease forwards', opacity: 0, animationDelay: '0.9s' }}>
+        <div className="auth-meta" style={{ animation: 'fade-up 400ms ease both 900ms' }}>
           <span>Developed by Arif</span>
           <div className="auth-meta__links">
             <Link to="/about">About</Link>
