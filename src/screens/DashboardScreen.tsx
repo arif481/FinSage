@@ -41,7 +41,7 @@ import { formatCurrency, formatDate, toMonthKey } from '@/utils/format'
 export const DashboardScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
-  const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
+  const { budgets, categories, error, loading, loans, transactions } = useFinanceCollections(user?.uid)
 
   if (loading) {
     return <LoadingScreen />
@@ -90,6 +90,12 @@ export const DashboardScreen = () => {
   const monthComparison = monthOverMonthComparison(transactions, currentMonth)
   const achievements = computeAchievements(transactions, budgets, currentMonth)
   const cashFlow = cashFlowWaterfall(transactions, categories, currentMonth)
+
+  // Loan summary
+  const activeLoans = loans.filter((l) => l.status === 'active')
+  const totalBorrowed = activeLoans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + l.amount, 0)
+  const totalLent = activeLoans.filter((l) => l.direction === 'lent').reduce((s, l) => s + l.amount, 0)
+  const overdueLoans = activeLoans.filter((l) => l.dueDate && new Date(l.dueDate) < new Date())
 
   const signals: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
@@ -164,6 +170,36 @@ export const DashboardScreen = () => {
           </div>
         ))}
       </section>
+
+      {/* Loan Summary */}
+      {activeLoans.length > 0 && (
+        <section className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
+          <div className="chart-header">
+            <span className="chart-header__icon">💸</span>
+            <h3>Loan Summary</h3>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div>
+              <small style={{ color: 'var(--text-muted)' }}>You owe</small>
+              <strong className="glow-text" style={{ display: 'block', color: 'var(--danger)', fontFamily: 'Space Grotesk, sans-serif' }}>
+                {formatCurrency(totalBorrowed, currency)}
+              </strong>
+            </div>
+            <div>
+              <small style={{ color: 'var(--text-muted)' }}>Owed to you</small>
+              <strong className="glow-text" style={{ display: 'block', color: 'var(--success)', fontFamily: 'Space Grotesk, sans-serif' }}>
+                {formatCurrency(totalLent, currency)}
+              </strong>
+            </div>
+            {overdueLoans.length > 0 && (
+              <span className="table-category" style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)', border: 'none' }}>
+                ⚠️ {overdueLoans.length} overdue
+              </span>
+            )}
+            <Link to="/loans" className="secondary-button" style={{ marginLeft: 'auto', fontSize: '0.8rem' }}>View all →</Link>
+          </div>
+        </section>
+      )}
 
       <section className="metric-grid" aria-label="Key metrics">
         <MetricCard label="Net balance" value={formatCurrency(netBalance(transactions), currency)} subtitle="Income minus expenses" tone={netBalance(transactions) < 0 ? 'danger' : 'good'} stagger={0} />
