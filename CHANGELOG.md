@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.7.0...finsage-web-v0.8.0) (2026-02-25)
+
+
+### Features
+
+* phase 3 — loan tracking, smarter AI, enhanced dashboard ([9695258](https://github.com/arif481/FinSage/commit/96952586af3796465ae42fff7bb0987959be2dd9))
+
+
+### Bug Fixes
+
+* add Firestore rules for loans subcollection ([e7559a4](https://github.com/arif481/FinSage/commit/e7559a42eee9e4f70378ad65ff902406387ff75e))
+* remove fake fallback scores from Financial Health Score ([0fc88b9](https://github.com/arif481/FinSage/commit/0fc88b94f41fd202fa3899ef04c0d67f2f693c8e))
+
 ## [0.7.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.6.0...finsage-web-v0.7.0) (2026-02-25)
 
 
