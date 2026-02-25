@@ -642,3 +642,120 @@ export const cashFlowWaterfall = (
   return items
 }
 
+/* ── Phase 3: Smart Visuals Pack 3 ── */
+
+export interface TreemapNode {
+  name: string
+  size: number
+  color: string
+}
+
+/** Prepares data for a Category Treemap visualization */
+export const categoryTreemapData = (
+  transactions: FinanceTransaction[],
+  categories: { id: string; name: string; color: string }[],
+  monthKey: string,
+): TreemapNode[] => {
+  const expenses = transactions.filter((t) => t.type === 'expense' && toMonthKey(t.date) === monthKey)
+  const totals = new Map<string, number>()
+
+  for (const e of expenses) {
+    totals.set(e.categoryId, (totals.get(e.categoryId) ?? 0) + Math.abs(e.amount))
+  }
+
+  return Array.from(totals.entries())
+    .map(([catId, size]) => {
+      const cat = categories.find((c) => c.id === catId)
+      return {
+        name: cat?.name ?? 'Other',
+        size: Math.round(size * 100) / 100,
+        color: cat?.color ?? '#8f95a1',
+      }
+    })
+    .filter((n) => n.size > 0)
+    .sort((a, b) => b.size - a.size)
+}
+
+export interface NetWorthPoint {
+  month: string
+  projected: number
+}
+
+/** Projects net worth/savings 12 months into the future based on recent average */
+export const netWorthProjectionData = (transactions: FinanceTransaction[]): NetWorthPoint[] => {
+  const trends = monthlyTrend(transactions)
+  if (trends.length === 0) return []
+
+  // Calculate average monthly savings from the last 3 active months
+  const recent = trends.slice(-3)
+  const avgSavings = recent.reduce((sum, m) => sum + (m.income - m.expense), 0) / recent.length
+
+  // Base starting amount (sum of all historical net savings)
+  let currentNet = transactions.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -Math.abs(t.amount)), 0)
+
+  const projection: NetWorthPoint[] = []
+  const today = new Date()
+
+  // Project 6 months into the future
+  for (let i = 1; i <= 6; i++) {
+    const futureDate = new Date(today.getFullYear(), today.getMonth() + i, 1)
+    const monthName = futureDate.toLocaleString('default', { month: 'short', year: '2-digit' })
+    currentNet += avgSavings
+    projection.push({ month: monthName, projected: Math.round(currentNet) })
+  }
+
+  return projection
+}
+
+export interface VelocityData {
+  value: number
+  target: number
+  status: 'good' | 'warning' | 'danger'
+  percent: number
+}
+
+/** Calculates spending velocity for a dial/speedometer gauge */
+export const velocityGaugeData = (
+  transactions: FinanceTransaction[],
+  budgets: Budget[],
+  monthKey: string
+): VelocityData => {
+  const monthTxns = transactions.filter((t) => toMonthKey(t.date) === monthKey)
+  const expenses = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0)
+  const totalBudget = budgets.filter((b) => b.month === monthKey).reduce((s, b) => s + b.limit, 0)
+
+  if (totalBudget === 0) return { value: expenses, target: 0, status: 'good', percent: 0 }
+
+  const percent = Math.min(Math.round((expenses / totalBudget) * 100), 150) // Cap at 150% for the gauge
+  const status = percent > 100 ? 'danger' : percent > 80 ? 'warning' : 'good'
+
+  return { value: expenses, target: totalBudget, status, percent }
+}
+
+export interface ScatterPoint {
+  day: number
+  amount: number
+  type: 'income' | 'expense'
+  categoryName: string
+}
+
+/** Prepares transaction data for an Income vs Expense scatter plot clustering */
+export const transactionScatterData = (
+  transactions: FinanceTransaction[],
+  categories: { id: string; name: string; color: string }[],
+  monthKey: string
+): ScatterPoint[] => {
+  const monthTxns = transactions.filter((t) => toMonthKey(t.date) === monthKey)
+
+  return monthTxns.map((t) => {
+    const date = new Date(t.date)
+    const cat = categories.find((c) => c.id === t.categoryId)
+    return {
+      day: date.getDate(),
+      amount: Math.abs(t.amount),
+      type: t.type,
+      categoryName: typeof t.categoryId === 'string' && t.categoryId.startsWith('income') ? 'Income' : (cat?.name ?? 'Other')
+    }
+  })
+}
+
