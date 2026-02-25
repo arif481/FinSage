@@ -10,6 +10,7 @@ export interface FinanceTransaction {
   description: string
   tags: string[]
   type: TransactionType
+  linkedLoanId?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -74,6 +75,7 @@ export interface Loan {
   id: string
   person: string
   amount: number
+  repaidAmount: number
   direction: LoanDirection
   status: LoanStatus
   description: string
