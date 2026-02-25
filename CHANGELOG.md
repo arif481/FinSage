@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.6.0...finsage-web-v0.7.0) (2026-02-25)
+
+
+### Features
+
+* phase 2 smart features — health score, anomalies, achievements ([accc247](https://github.com/arif481/FinSage/commit/accc247889a3a40f827d3c05f059e4264f365070))
+
 ## [0.6.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.5.1...finsage-web-v0.6.0) (2026-02-25)
 
 
