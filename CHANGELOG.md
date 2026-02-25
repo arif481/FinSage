@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1](https://github.com/arif481/FinSage/compare/finsage-web-v0.9.0...finsage-web-v0.9.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* resolve firebase payload crash on loans creation and deploy missing firestore rules ([11dbb40](https://github.com/arif481/FinSage/commit/11dbb40e1e270ee3a21f53e88738c114a9da9070))
+
 ## [0.9.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.8.0...finsage-web-v0.9.0) (2026-02-25)
 
 
