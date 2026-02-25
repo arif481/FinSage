@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { subscribeBudgets } from '@/services/firestore/budgets'
 import { subscribeCategories } from '@/services/firestore/categories'
+import { subscribeLoans } from '@/services/firestore/loans'
 import { subscribeTransactions } from '@/services/firestore/transactions'
-import { Budget, Category, FinanceTransaction } from '@/types/finance'
+import { Budget, Category, FinanceTransaction, Loan } from '@/types/finance'
 
 interface UseFinanceCollectionsResult {
   budgets: Budget[]
   categories: Category[]
   error: string | null
   loading: boolean
+  loans: Loan[]
   transactions: FinanceTransaction[]
 }
 
@@ -16,6 +18,7 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
+  const [loans, setLoans] = useState<Loan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,6 +27,7 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       setTransactions([])
       setCategories([])
       setBudgets([])
+      setLoans([])
       setLoading(false)
       setError(null)
       return
@@ -35,9 +39,10 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
     let transactionsReady = false
     let categoriesReady = false
     let budgetsReady = false
+    let loansReady = false
 
     const markReady = () => {
-      if (transactionsReady && categoriesReady && budgetsReady) {
+      if (transactionsReady && categoriesReady && budgetsReady && loansReady) {
         setLoading(false)
       }
     }
@@ -83,10 +88,23 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       },
     )
 
+    const unsubscribeLoans = subscribeLoans(
+      uid,
+      (nextLoans) => {
+        setLoans(nextLoans)
+        loansReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
+
     return () => {
       unsubscribeTransactions()
       unsubscribeCategories()
       unsubscribeBudgets()
+      unsubscribeLoans()
     }
   }, [uid])
 
@@ -95,6 +113,7 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
     categories,
     error,
     loading,
+    loans,
     transactions,
   }
 }

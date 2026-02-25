@@ -21,6 +21,12 @@ const BudgetsIcon = () => (
   </svg>
 )
 
+const LoansIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+)
+
 const AssistantIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" /><path d="M18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75L18 15Z" />
@@ -49,6 +55,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', short: 'DB', icon: <DashboardIcon /> },
   { to: '/transactions', label: 'Transactions', short: 'TX', icon: <TransactionsIcon /> },
   { to: '/budgets', label: 'Budgets', short: 'BG', icon: <BudgetsIcon /> },
+  { to: '/loans', label: 'Loans', short: 'LN', icon: <LoansIcon /> },
   { to: '/chat', label: 'Assistant', short: 'AI', icon: <AssistantIcon /> },
   { to: '/reports', label: 'Reports', short: 'RP', icon: <ReportsIcon /> },
   { to: '/settings', label: 'Settings', short: 'ST', icon: <SettingsIcon /> },
