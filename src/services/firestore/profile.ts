@@ -96,8 +96,11 @@ export const updateUserPreferences = async (
   uid: string,
   preferences: Partial<UserPreferences>,
 ): Promise<void> => {
-  await updateDoc(doc(db, userDocPath(uid)), {
-    preferences,
-    updatedAt: serverTimestamp(),
-  })
+  // Use dot-notation so Firestore merges individual fields
+  // instead of replacing the entire preferences map
+  const updates: Record<string, unknown> = { updatedAt: serverTimestamp() }
+  for (const [key, value] of Object.entries(preferences)) {
+    updates[`preferences.${key}`] = value
+  }
+  await updateDoc(doc(db, userDocPath(uid)), updates)
 }

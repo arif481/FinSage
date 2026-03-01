@@ -55,13 +55,15 @@ service cloud.firestore {
           'themeMode',
           'highContrast',
           'emailNotifications',
-          'pushNotifications'
+          'pushNotifications',
+          'onboardingComplete'
         ])
         && validShortString(value.currency, 8)
         && (value.themeMode == 'light' || value.themeMode == 'dark')
         && value.highContrast is bool
         && value.emailNotifications is bool
-        && value.pushNotifications is bool;
+        && value.pushNotifications is bool
+        && value.onboardingComplete is bool;
     }
 
     function validUserProfileCreate() {
@@ -90,30 +92,15 @@ service cloud.firestore {
     }
 
     function validUserProfileUpdate() {
-      return changedKeys().hasOnly([
-          'email',
-          'displayName',
-          'collaborators',
-          'preferences',
-          'updatedAt'
-        ])
-        && changedKeys().hasAny(['updatedAt'])
-        && validTimestamp(request.resource.data.updatedAt)
+      let data = request.resource.data;
+      let changes = request.resource.data.diff(resource.data).affectedKeys();
+      // Allow both full preferences replacement and dot-notation field updates
+      // (preferences.currency, preferences.onboardingComplete, etc.)
+      return changes.hasAny(['updatedAt'])
+        && validTimestamp(data.updatedAt)
         && (
-          !changedKeys().hasAny(['email'])
-          || validShortString(request.resource.data.email, 320)
-        )
-        && (
-          !changedKeys().hasAny(['displayName'])
-          || validShortString(request.resource.data.displayName, 80)
-        )
-        && (
-          !changedKeys().hasAny(['collaborators'])
-          || validStringList(request.resource.data.collaborators, 20)
-        )
-        && (
-          !changedKeys().hasAny(['preferences'])
-          || validPreferences(request.resource.data.preferences)
+          !changes.hasAny(['preferences'])
+          || validPreferences(data.preferences)
         );
     }
 
