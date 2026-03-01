@@ -759,3 +759,74 @@ export const transactionScatterData = (
   })
 }
 
+/* ── Year-over-Year Comparison ── */
+
+export interface YoYMonthPoint {
+  month: string       // e.g. "Jan", "Feb"
+  currentIncome: number
+  currentExpense: number
+  previousIncome: number
+  previousExpense: number
+}
+
+export interface YoYSummary {
+  currentYear: number
+  previousYear: number
+  months: YoYMonthPoint[]
+  totalCurrentIncome: number
+  totalCurrentExpense: number
+  totalPreviousIncome: number
+  totalPreviousExpense: number
+  incomeChange: number      // percentage
+  expenseChange: number     // percentage
+  netChange: number         // percentage
+}
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Compare 12-month income/expense totals for current year vs previous year */
+export const yearOverYearComparison = (
+  transactions: FinanceTransaction[],
+  currentYear: number = new Date().getFullYear(),
+): YoYSummary => {
+  const previousYear = currentYear - 1
+
+  const months: YoYMonthPoint[] = MONTH_LABELS.map((label, i) => {
+    const curMonthKey = `${currentYear}-${String(i + 1).padStart(2, '0')}`
+    const prevMonthKey = `${previousYear}-${String(i + 1).padStart(2, '0')}`
+
+    const curTxns = transactions.filter(t => toMonthKey(t.date) === curMonthKey)
+    const prevTxns = transactions.filter(t => toMonthKey(t.date) === prevMonthKey)
+
+    return {
+      month: label,
+      currentIncome: totalIncome(curTxns),
+      currentExpense: totalExpenses(curTxns),
+      previousIncome: totalIncome(prevTxns),
+      previousExpense: totalExpenses(prevTxns),
+    }
+  })
+
+  const totalCurrentIncome = months.reduce((s, m) => s + m.currentIncome, 0)
+  const totalCurrentExpense = months.reduce((s, m) => s + m.currentExpense, 0)
+  const totalPreviousIncome = months.reduce((s, m) => s + m.previousIncome, 0)
+  const totalPreviousExpense = months.reduce((s, m) => s + m.previousExpense, 0)
+
+  const pct = (cur: number, prev: number) => prev === 0 ? (cur > 0 ? 100 : 0) : ((cur - prev) / prev) * 100
+
+  return {
+    currentYear,
+    previousYear,
+    months,
+    totalCurrentIncome,
+    totalCurrentExpense,
+    totalPreviousIncome,
+    totalPreviousExpense,
+    incomeChange: pct(totalCurrentIncome, totalPreviousIncome),
+    expenseChange: pct(totalCurrentExpense, totalPreviousExpense),
+    netChange: pct(
+      totalCurrentIncome - totalCurrentExpense,
+      totalPreviousIncome - totalPreviousExpense,
+    ),
+  }
+}

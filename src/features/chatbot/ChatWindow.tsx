@@ -1,12 +1,45 @@
-import { FormEvent, useMemo, useState, useEffect, useRef } from 'react'
+import { FormEvent, useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { ChatMessage } from '@/types/finance'
 import { formatDate } from '@/utils/format'
+
+/** Renders basic markdown-like formatting: **bold**, `code`, bullet lists */
+const renderMarkdown = (text: string): React.ReactNode[] => {
+  const lines = text.split('\n')
+  const elements: React.ReactNode[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.startsWith('- ') || line.startsWith('• ')) {
+      elements.push(<li key={i} style={{ marginLeft: '1rem' }}>{formatInline(line.slice(2))}</li>)
+    } else if (line.trim() === '') {
+      elements.push(<br key={i} />)
+    } else {
+      elements.push(<p key={i} style={{ margin: '0.25rem 0' }}>{formatInline(line)}</p>)
+    }
+  }
+  return elements
+}
+
+const formatInline = (text: string): React.ReactNode => {
+  // Handle **bold** and `code`
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={i} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.1rem 0.3rem', borderRadius: '3px', fontSize: '0.85em' }}>{part.slice(1, -1)}</code>
+    }
+    return part
+  })
+}
 
 interface ChatWindowProps {
   loading?: boolean
   messages: ChatMessage[]
   quickPrompts?: string[]
   onSendMessage: (prompt: string) => Promise<void>
+  onClearChat?: () => void
 }
 
 export const ChatWindow = ({
@@ -14,9 +47,17 @@ export const ChatWindow = ({
   messages,
   quickPrompts = [],
   onSendMessage,
+  onClearChat,
 }: ChatWindowProps) => {
   const [value, setValue] = useState('')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const copyToClipboard = useCallback(async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }, [])
 
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
@@ -52,15 +93,26 @@ export const ChatWindow = ({
     >
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'linear-gradient(90deg, transparent, var(--primary), transparent)', opacity: 0.7, animation: 'shimmer 2s infinite linear' }} />
       <header>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px var(--primary))' }}>
-            <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" /><path d="M18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75L18 15Z" />
-          </svg>
-          <h3 className="glow-text" style={{ fontFamily: 'Space Grotesk, monospace', color: 'var(--primary)' }}>FinSage AI Terminal</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px var(--primary))' }}>
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" /><path d="M18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75L18 15Z" />
+            </svg>
+            <h3 className="glow-text" style={{ fontFamily: 'Space Grotesk, monospace', color: 'var(--primary)' }}>FinSage AI Terminal</h3>
+          </div>
+          {onClearChat && sortedMessages.length > 0 && (
+            <button className="secondary-button" type="button" onClick={onClearChat}
+              style={{ fontSize: '0.8rem', fontFamily: 'Space Grotesk, monospace' }}>
+              🗑 Clear
+            </button>
+          )}
         </div>
         <p className="section-subtitle">
           Ask about budgets, spending trends, and financial forecasting.
         </p>
+        <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+          📎 Context: transactions, budgets, goals, loans, health score
+        </small>
       </header>
 
       {quickPrompts.length > 0 ? (
@@ -99,8 +151,18 @@ export const ChatWindow = ({
               boxShadow: message.role === 'user' ? 'var(--glow-primary)' : 'var(--glow-success)',
             }}
           >
-            <p style={{ color: message.role === 'user' ? '#fff' : 'var(--success)' }}>{message.content}</p>
-            <small style={{ color: 'color-mix(in srgb, currentColor 70%, transparent)' }}>{formatDate(message.timestamp)}</small>
+            <div style={{ color: message.role === 'user' ? '#fff' : 'var(--success)' }}>
+              {message.role === 'assistant' ? renderMarkdown(message.content) : <p>{message.content}</p>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+              <small style={{ color: 'color-mix(in srgb, currentColor 70%, transparent)' }}>{formatDate(message.timestamp)}</small>
+              {message.role === 'assistant' && (
+                <button type="button" onClick={() => void copyToClipboard(message.content, message.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-muted)', padding: '0.15rem 0.3rem' }}>
+                  {copiedId === message.id ? '✅ Copied' : '📋 Copy'}
+                </button>
+              )}
+            </div>
           </article>
         ))}
         {loading ? (

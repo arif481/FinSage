@@ -44,6 +44,7 @@ export interface UserPreferences {
   highContrast: boolean
   emailNotifications: boolean
   pushNotifications: boolean
+  onboardingComplete: boolean
 }
 
 export interface UserProfile {
@@ -95,5 +96,35 @@ export interface RecurringRule {
   nextRun: string
   active: boolean
   createdAt?: string
+}
+
+export type GoalStatus = 'active' | 'completed' | 'paused'
+
+export interface SavingsGoal {
+  id: string
+  name: string
+  targetAmount: number
+  currentAmount: number
+  status: GoalStatus
+  targetDate?: string
+  icon?: string
+  color?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type SplitStatus = 'pending' | 'settled'
+
+export interface SplitExpense {
+  id: string
+  description: string
+  totalAmount: number
+  myShare: number
+  splitWith: string
+  status: SplitStatus
+  linkedTransactionId?: string
+  settledDate?: string
+  createdAt?: string
+  updatedAt?: string
 }
 

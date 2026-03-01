@@ -2,165 +2,143 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
-import { addLoan, deleteLoan, updateLoan } from '@/services/firestore/loans'
-import { addTransaction } from '@/services/firestore/transactions'
+import {
+    addLoan,
+    deleteLoan,
+    settleLoan,
+    type LoanInput,
+    updateLoan,
+} from '@/services/firestore/loans'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
-import { Loan, LoanDirection } from '@/types/finance'
+import { showToast } from '@/components/common/Toast'
+import { Loan } from '@/types/finance'
 import { formatCurrency, formatDate } from '@/utils/format'
 
 export const LoansScreen = () => {
     const { user } = useAuth()
     const currency = useCurrency()
     const { error, loading, loans } = useFinanceCollections(user?.uid)
-
     const [showForm, setShowForm] = useState(false)
     const [editingLoan, setEditingLoan] = useState<Loan | null>(null)
+    const [saving, setSaving] = useState(false)
+    const [repayingLoanId, setRepayingLoanId] = useState<string | null>(null)
+    const [repayAmount, setRepayAmount] = useState('')
+
+    // Form state
     const [person, setPerson] = useState('')
     const [amount, setAmount] = useState('')
-    const [direction, setDirection] = useState<LoanDirection>('borrowed')
+    const [direction, setDirection] = useState<'borrowed' | 'lent'>('lent')
     const [description, setDescription] = useState('')
     const [dueDate, setDueDate] = useState('')
 
-    // Partial Repayment State
-    const [repayingLoan, setRepayingLoan] = useState<Loan | null>(null)
-    const [repayAmount, setRepayAmount] = useState('')
-
-    if (loading) return <LoadingScreen label="Loading loans..." />
-
-    const activeLoans = loans.filter((l) => l.status === 'active')
-    const settledLoans = loans.filter((l) => l.status === 'settled')
-    const totalBorrowed = activeLoans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + (l.amount - l.repaidAmount), 0)
-    const totalLent = activeLoans.filter((l) => l.direction === 'lent').reduce((s, l) => s + (l.amount - l.repaidAmount), 0)
+    if (loading) {
+        return <LoadingScreen label="Loading loans..." />
+    }
 
     const resetForm = () => {
         setPerson('')
         setAmount('')
-        setDirection('borrowed')
+        setDirection('lent')
         setDescription('')
         setDueDate('')
         setEditingLoan(null)
         setShowForm(false)
     }
 
-    const resetRepayForm = () => {
-        setRepayingLoan(null)
-        setRepayAmount('')
+    const openEdit = (loan: Loan) => {
+        setPerson(loan.person)
+        setAmount(String(loan.amount))
+        setDirection(loan.direction)
+        setDescription(loan.description ?? '')
+        setDueDate(loan.dueDate ?? '')
+        setEditingLoan(loan)
+        setShowForm(true)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user || !person.trim() || !amount) return
 
-        const numAmount = parseFloat(amount)
+        setSaving(true)
+        try {
+            const payload: LoanInput = {
+                person: person.trim(),
+                amount: Math.abs(parseFloat(amount)),
+                repaidAmount: editingLoan?.repaidAmount ?? 0,
+                direction,
+                description: description.trim(),
+                dueDate: dueDate || undefined,
+                status: 'active',
+            }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const payload: any = {
-            person: person.trim(),
-            amount: numAmount,
-            direction,
-            status: 'active' as const,
-            description: description.trim(),
+            if (editingLoan) {
+                await updateLoan(user.uid, editingLoan.id, payload)
+                showToast('Loan updated.', 'success')
+            } else {
+                await addLoan(user.uid, payload)
+                showToast('Loan added!', 'success')
+            }
+            resetForm()
+        } catch {
+            showToast('Failed to save loan.', 'error')
+        } finally {
+            setSaving(false)
         }
-
-        if (dueDate) {
-            payload.dueDate = dueDate
-        }
-
-        if (editingLoan) {
-            await updateLoan(user.uid, editingLoan.id, payload)
-        } else {
-            payload.repaidAmount = 0
-            const loanId = await addLoan(user.uid, payload)
-
-            // Auto-create initial transaction
-            await addTransaction(user.uid, {
-                amount: numAmount,
-                categoryId: 'loans',
-                date: new Date().toISOString(),
-                description: `Initial loan ${payload.direction === 'borrowed' ? 'from' : 'to'} ${payload.person}`,
-                tags: ['loan'],
-                type: payload.direction === 'borrowed' ? 'income' : 'expense',
-                linkedLoanId: loanId
-            })
-        }
-        resetForm()
     }
 
-    const handleRepaySubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!user || !repayingLoan || !repayAmount) return
-
-        const payment = parseFloat(repayAmount)
-        if (payment <= 0) return
-
-        const newRepaid = repayingLoan.repaidAmount + payment
-        const isSettled = newRepaid >= repayingLoan.amount
-
-        // 1. Update Loan Document
-        if (isSettled) {
-            await updateLoan(user.uid, repayingLoan.id, {
-                repaidAmount: repayingLoan.amount,
-                status: 'settled',
-                settledDate: new Date().toISOString()
-            })
-        } else {
-            await updateLoan(user.uid, repayingLoan.id, {
-                repaidAmount: newRepaid
-            })
+    const handleRepay = async (loanId: string, currentRepaid: number) => {
+        if (!user || !repayAmount) return
+        setSaving(true)
+        try {
+            const newRepaid = currentRepaid + Math.abs(parseFloat(repayAmount))
+            await updateLoan(user.uid, loanId, { repaidAmount: newRepaid })
+            showToast('Repayment recorded!', 'success')
+            setRepayingLoanId(null)
+            setRepayAmount('')
+        } catch {
+            showToast('Failed to record repayment.', 'error')
+        } finally {
+            setSaving(false)
         }
-
-        // 2. Add Linked Transaction
-        await addTransaction(user.uid, {
-            amount: payment,
-            categoryId: 'loans',
-            date: new Date().toISOString(),
-            description: `Loan repayment ${repayingLoan.direction === 'borrowed' ? 'to' : 'from'} ${repayingLoan.person}`,
-            tags: ['loan', 'repayment'],
-            type: repayingLoan.direction === 'borrowed' ? 'expense' : 'income',
-            linkedLoanId: repayingLoan.id
-        })
-
-        resetRepayForm()
     }
 
-    const openEdit = (loan: Loan) => {
-        setEditingLoan(loan)
-        setPerson(loan.person)
-        setAmount(String(loan.amount))
-        setDirection(loan.direction)
-        setDescription(loan.description)
-        setDueDate(loan.dueDate ?? '')
-        setShowForm(true)
-    }
-
-    const handleSettleFull = async (loan: Loan) => {
+    const handleSettle = async (loanId: string) => {
         if (!user) return
-
-        const remaining = loan.amount - loan.repaidAmount
-        if (remaining > 0) {
-            // Auto-create transaction for the remaining balance
-            await addTransaction(user.uid, {
-                amount: remaining,
-                categoryId: 'loans',
-                date: new Date().toISOString(),
-                description: `Full settlement ${loan.direction === 'borrowed' ? 'to' : 'from'} ${loan.person}`,
-                tags: ['loan', 'settlement'],
-                type: loan.direction === 'borrowed' ? 'expense' : 'income',
-                linkedLoanId: loan.id
-            })
+        try {
+            await settleLoan(user.uid, loanId)
+            showToast('Loan settled! ✅', 'success')
+        } catch {
+            showToast('Failed to settle.', 'error')
         }
-
-        await updateLoan(user.uid, loan.id, {
-            repaidAmount: loan.amount, // Set repaid amount to full
-            status: 'settled',
-            settledDate: new Date().toISOString()
-        })
     }
 
     const handleDelete = async (loanId: string) => {
         if (!user) return
-        await deleteLoan(user.uid, loanId)
+        try {
+            await deleteLoan(user.uid, loanId)
+            showToast('Loan deleted.', 'success')
+        } catch {
+            showToast('Failed to delete.', 'error')
+        }
     }
+
+    const activeLoans = loans.filter((l) => l.status === 'active')
+    const settledLoans = loans.filter((l) => l.status === 'settled')
+    const totalLent = activeLoans.filter((l) => l.direction === 'lent').reduce((s, l) => s + l.amount, 0)
+    const totalBorrowed = activeLoans.filter((l) => l.direction === 'borrowed').reduce((s, l) => s + l.amount, 0)
+    const now = new Date()
+    const overdueLoans = activeLoans.filter((l) => l.dueDate && new Date(l.dueDate) < now)
+    const upcomingDue = activeLoans
+        .filter((l) => l.dueDate && new Date(l.dueDate) >= now)
+        .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
+        .slice(0, 3)
+
+    const insightData = [
+        { label: 'Total lent', value: formatCurrency(totalLent, currency) },
+        { label: 'Total borrowed', value: formatCurrency(totalBorrowed, currency) },
+        { label: 'Net position', value: formatCurrency(totalLent - totalBorrowed, currency) },
+        { label: 'Overdue', value: String(overdueLoans.length) },
+    ]
 
     return (
         <main className="screen stack">
@@ -168,211 +146,219 @@ export const LoansScreen = () => {
 
             <header className="screen-header" style={{ animation: 'fade-up 400ms ease both' }}>
                 <div>
-                    <h2>Loans & Borrowings</h2>
-                    <p className="section-subtitle">Track money tracking with partial payments and auto-transactions.</p>
+                    <h2>Loans</h2>
+                    <p className="section-subtitle">
+                        Track money lent and borrowed — never forget who owes what.
+                    </p>
                 </div>
-                <button className="primary-button" onClick={() => { resetForm(); setShowForm(!showForm) }}>
-                    {showForm ? 'Cancel' : '+ New Loan'}
+                <button className="primary-button" type="button" onClick={() => { resetForm(); setShowForm(true) }}>
+                    + New loan
                 </button>
             </header>
 
-            {/* Summary */}
-            <section className="metric-grid" aria-label="Loan summary">
-                <article className="metric-card" style={{ '--stagger': 0, '--accent': 'var(--danger)' } as React.CSSProperties}>
-                    <small className="metric-card__label">You Owe</small>
-                    <strong className="metric-card__value glow-text" style={{ color: 'var(--danger)' }}>
-                        {formatCurrency(totalBorrowed, currency)}
-                    </strong>
-                    <span className="metric-card__sub">{activeLoans.filter((l) => l.direction === 'borrowed').length} active</span>
-                </article>
-                <article className="metric-card" style={{ '--stagger': 1, '--accent': 'var(--success)' } as React.CSSProperties}>
-                    <small className="metric-card__label">Owed to You</small>
-                    <strong className="metric-card__value glow-text" style={{ color: 'var(--success)' }}>
-                        {formatCurrency(totalLent, currency)}
-                    </strong>
-                    <span className="metric-card__sub">{activeLoans.filter((l) => l.direction === 'lent').length} active</span>
-                </article>
-                <article className="metric-card" style={{ '--stagger': 2, '--accent': 'var(--primary)' } as React.CSSProperties}>
-                    <small className="metric-card__label">Net Position</small>
-                    <strong className="metric-card__value glow-text" style={{ color: totalLent - totalBorrowed >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {totalLent - totalBorrowed >= 0 ? '+' : ''}{formatCurrency(totalLent - totalBorrowed, currency)}
-                    </strong>
-                    <span className="metric-card__sub">Pending Balance</span>
-                </article>
+            <section className="insight-strip">
+                {insightData.map((item, i) => (
+                    <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+                        <small>{item.label}</small>
+                        <strong style={{
+                            color: item.label === 'Overdue' && overdueLoans.length > 0 ? 'var(--danger)' :
+                                item.label === 'Net position' && totalLent - totalBorrowed > 0 ? 'var(--success)' :
+                                    item.label === 'Net position' && totalLent - totalBorrowed < 0 ? 'var(--danger)' : undefined,
+                        }}>
+                            {item.value}
+                        </strong>
+                    </article>
+                ))}
             </section>
 
-            {/* New / Edit Loan Form */}
+            {/* Overdue alerts */}
+            {overdueLoans.length > 0 && (
+                <section className="card" style={{ borderLeft: '4px solid var(--danger)', animation: 'fade-up 400ms ease both' }}>
+                    <h3 style={{ color: 'var(--danger)', margin: '0 0 0.5rem' }}>⚠️ Overdue loans</h3>
+                    {overdueLoans.map((loan) => (
+                        <div key={loan.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid var(--border)' }}>
+                            <div>
+                                <span style={{ fontWeight: 600 }}>{loan.person}</span>
+                                <small style={{ display: 'block', color: 'var(--danger)' }}>
+                                    Due: {loan.dueDate ? formatDate(loan.dueDate) : 'N/A'} • {loan.direction === 'lent' ? 'They owe you' : 'You owe them'}
+                                </small>
+                            </div>
+                            <span style={{ fontWeight: 700, color: 'var(--danger)' }}>{formatCurrency(loan.amount, currency)}</span>
+                        </div>
+                    ))}
+                </section>
+            )}
+
+            {/* Upcoming due dates */}
+            {upcomingDue.length > 0 && (
+                <section className="card" style={{ '--stagger': 0 } as React.CSSProperties}>
+                    <h3>📅 Upcoming due dates</h3>
+                    {upcomingDue.map((loan) => (
+                        <div key={loan.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid var(--border)' }}>
+                            <div>
+                                <span style={{ fontWeight: 500 }}>{loan.person}</span>
+                                <small style={{ display: 'block', color: 'var(--text-muted)' }}>
+                                    {loan.dueDate ? formatDate(loan.dueDate) : ''} • {loan.direction === 'lent' ? 'They owe you' : 'You owe them'}
+                                </small>
+                            </div>
+                            <span style={{ fontWeight: 600 }}>{formatCurrency(loan.amount, currency)}</span>
+                        </div>
+                    ))}
+                </section>
+            )}
+
+            {/* Form */}
             {showForm && (
-                <section className="card stack" style={{ animation: 'scale-pop 300ms ease both' }}>
-                    <h3>{editingLoan ? 'Edit Loan' : 'New Loan'}</h3>
-                    <form className="form-grid" onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label htmlFor="loan-person">Person</label>
-                            <input id="loan-person" type="text" placeholder="Who?" value={person} onChange={(e) => setPerson(e.target.value)} required />
+                <section className="card stack" style={{ '--stagger': 1, animation: 'fade-up 400ms ease both' } as React.CSSProperties}>
+                    <h3>{editingLoan ? '✏️ Edit loan' : '💸 New loan'}</h3>
+                    <form onSubmit={(e) => void handleSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <label className="field">
+                            <span>Person</span>
+                            <input type="text" placeholder="Who?" value={person} onChange={(e) => setPerson(e.target.value)} required />
+                        </label>
+
+                        <div className="field-row">
+                            <label className="field">
+                                <span>Amount</span>
+                                <input type="number" placeholder="500" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+                            </label>
+                            <label className="field">
+                                <span>Direction</span>
+                                <select value={direction} onChange={(e) => setDirection(e.target.value as 'borrowed' | 'lent')}>
+                                    <option value="lent">I lent (they owe me)</option>
+                                    <option value="borrowed">I borrowed (I owe them)</option>
+                                </select>
+                            </label>
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="loan-amount">Amount</label>
-                            <input id="loan-amount" type="number" step="0.01" min="0" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+
+                        <div className="field-row">
+                            <label className="field">
+                                <span>Description</span>
+                                <input type="text" placeholder="What for? (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+                            </label>
+                            <label className="field">
+                                <span>Due date (optional)</span>
+                                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                            </label>
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="loan-direction">Type</label>
-                            <select id="loan-direction" value={direction} onChange={(e) => setDirection(e.target.value as LoanDirection)}>
-                                <option value="borrowed">I borrowed (I owe them)</option>
-                                <option value="lent">I lent (They owe me)</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="loan-due">Due date (optional)</label>
-                            <input id="loan-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                        </div>
-                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label htmlFor="loan-desc">Description</label>
-                            <input id="loan-desc" type="text" placeholder="Reason / notes" value={description} onChange={(e) => setDescription(e.target.value)} />
-                        </div>
-                        <div className="button-row" style={{ gridColumn: '1 / -1' }}>
-                            <button type="submit" className="primary-button">{editingLoan ? 'Update' : 'Add Loan'}</button>
-                            <button type="button" className="secondary-button" onClick={resetForm}>Cancel</button>
+
+                        <div className="button-row">
+                            <button className="primary-button" type="submit" disabled={saving}>
+                                {saving ? 'Saving...' : editingLoan ? 'Update' : 'Add loan'}
+                            </button>
+                            <button className="secondary-button" type="button" onClick={resetForm}>Cancel</button>
                         </div>
                     </form>
                 </section>
             )}
 
-            {/* Repay Modal/Form inline */}
-            {repayingLoan && (
-                <section className="card stack" style={{ animation: 'scale-pop 300ms ease both', borderColor: 'var(--primary)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3>Record Payment: {repayingLoan.person}</h3>
-                        <span className="table-category">Remaining: {formatCurrency(repayingLoan.amount - repayingLoan.repaidAmount, currency)}</span>
-                    </div>
-                    <form className="form-grid" onSubmit={handleRepaySubmit}>
-                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label htmlFor="repay-amount">Payment Amount</label>
-                            <input
-                                id="repay-amount"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                max={repayingLoan.amount - repayingLoan.repaidAmount}
-                                placeholder="0.00"
-                                value={repayAmount}
-                                onChange={(e) => setRepayAmount(e.target.value)}
-                                required
-                                autoFocus
-                            />
-                        </div>
-                        <div className="button-row" style={{ gridColumn: '1 / -1' }}>
-                            <button type="submit" className="primary-button">Confirm Payment</button>
-                            <button type="button" className="secondary-button" onClick={resetRepayForm}>Cancel</button>
-                        </div>
-                    </form>
-                </section>
-            )}
+            {/* Active loans */}
+            {activeLoans.length > 0 && (
+                <section className="stack" style={{ gap: '0.75rem' }}>
+                    <h3>🟢 Active loans</h3>
+                    {activeLoans.map((loan, i) => {
+                        const isOverdue = loan.dueDate && new Date(loan.dueDate) < now
+                        const isRepaying = repayingLoanId === loan.id
+                        const pctPaid = loan.amount > 0 ? Math.round((loan.repaidAmount / loan.amount) * 100) : 0
 
-            {/* Active Loans */}
-            <section className="card stack" style={{ '--stagger': 3 } as React.CSSProperties}>
-                <h3>Active Loans</h3>
-                {activeLoans.length === 0 ? (
-                    <div className="empty-state" style={{ textAlign: 'center', padding: '2rem' }}>
-                        <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.5rem' }}>💸</span>
-                        <p>No active loans. Click <strong>+ New Loan</strong> to track a borrow or lending.</p>
-                    </div>
-                ) : (
-                    <div className="loan-list">
-                        {activeLoans.map((loan, i) => {
-                            const isOverdue = loan.dueDate && new Date(loan.dueDate) < new Date()
-                            const pct = Math.min(100, Math.max(0, (loan.repaidAmount / loan.amount) * 100))
-                            const remaining = loan.amount - loan.repaidAmount
-
-                            return (
-                                <article
-                                    key={loan.id}
-                                    className={`loan-card ${isOverdue ? 'loan-card--overdue' : ''}`}
-                                    style={{ '--stagger': i } as React.CSSProperties}
-                                >
-                                    <div className="loan-card__icon">
-                                        {loan.direction === 'borrowed' ? '🔴' : '🟢'}
-                                    </div>
-                                    <div className="loan-card__body" style={{ width: '100%' }}>
-                                        <div className="loan-card__header">
-                                            <strong>{loan.person}</strong>
-                                            <span className={`loan-card__amount ${loan.direction === 'borrowed' ? 'amount--expense' : 'amount--income'}`}>
-                                                {formatCurrency(remaining, currency)}
+                        return (
+                            <article key={loan.id} className="card" style={{
+                                '--stagger': i + 2,
+                                borderLeft: `4px solid ${isOverdue ? 'var(--danger)' : loan.direction === 'lent' ? 'var(--success)' : 'var(--primary)'}`,
+                            } as React.CSSProperties}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <h4 style={{ margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            {loan.person}
+                                            {isOverdue && <span style={{ fontSize: '0.7rem', background: 'var(--danger)', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>OVERDUE</span>}
+                                            <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: loan.direction === 'lent' ? 'color-mix(in srgb, var(--success) 20%, transparent)' : 'color-mix(in srgb, var(--primary) 20%, transparent)', color: loan.direction === 'lent' ? 'var(--success)' : 'var(--primary)' }}>
+                                                {loan.direction === 'lent' ? '↑ Lent' : '↓ Borrowed'}
                                             </span>
-                                        </div>
-                                        {loan.description && <p className="loan-card__desc">{loan.description}</p>}
-
-                                        {/* Progress Bar for Partial Payments */}
-                                        <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                                <span>{formatCurrency(loan.repaidAmount, currency)} repaid</span>
-                                                <span>{formatCurrency(loan.amount, currency)} total</span>
-                                            </div>
-                                            <div style={{ width: '100%', height: '6px', background: 'var(--bg-panel)', borderRadius: '4px', overflow: 'hidden' }}>
-                                                <div
-                                                    style={{
-                                                        height: '100%',
-                                                        width: `${pct}%`,
-                                                        background: 'var(--primary)',
-                                                        transition: 'width 0.3s ease'
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="loan-card__meta">
-                                            <span className={`table-category ${loan.direction === 'borrowed' ? '' : 'table-category--success'}`}>
-                                                {loan.direction === 'borrowed' ? 'You owe' : 'They owe you'}
-                                            </span>
-                                            {loan.dueDate && (
-                                                <small className={isOverdue ? 'text--danger' : ''}>
-                                                    {isOverdue ? '⚠️ Overdue' : '📅'} Due: {formatDate(loan.dueDate)}
-                                                </small>
-                                            )}
-                                        </div>
+                                        </h4>
+                                        <small style={{ color: 'var(--text-muted)' }}>
+                                            {loan.description && `${loan.description} • `}
+                                            {loan.dueDate ? `Due: ${formatDate(loan.dueDate)}` : 'No due date'}
+                                        </small>
                                     </div>
-                                    <div className="loan-card__actions" style={{ flexDirection: 'column', gap: '0.5rem' }}>
-                                        <button className="primary-button" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => setRepayingLoan(loan)}>Repay</button>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button className="icon-button" title="Full Settle" onClick={() => handleSettleFull(loan)}>✅</button>
-                                            <button className="icon-button" title="Edit" onClick={() => openEdit(loan)}>✏️</button>
-                                            <button className="icon-button" title="Delete" onClick={() => handleDelete(loan.id)}>🗑️</button>
-                                        </div>
-                                    </div>
-                                </article>
-                            )
-                        })}
-                    </div>
-                )}
-            </section>
-
-            {/* Settled Loans */}
-            {settledLoans.length > 0 && (
-                <section className="card stack" style={{ '--stagger': 4 } as React.CSSProperties}>
-                    <h3>Settled History</h3>
-                    <div className="loan-list">
-                        {settledLoans.map((loan, i) => (
-                            <article
-                                key={loan.id}
-                                className="loan-card loan-card--settled"
-                                style={{ '--stagger': i } as React.CSSProperties}
-                            >
-                                <div className="loan-card__icon">
-                                    {loan.direction === 'borrowed' ? '🔴' : '🟢'}
+                                    <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{formatCurrency(loan.amount, currency)}</span>
                                 </div>
-                                <div className="loan-card__body">
-                                    <div className="loan-card__header">
-                                        <strong style={{ textDecoration: 'line-through', opacity: 0.7 }}>{loan.person}</strong>
-                                        <span style={{ opacity: 0.6 }}>{formatCurrency(loan.amount, currency)}</span>
+
+                                {/* Repayment progress */}
+                                {loan.repaidAmount > 0 && (
+                                    <div style={{ marginTop: '0.6rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem', color: 'var(--text-muted)' }}>
+                                            <span>Repaid: {formatCurrency(loan.repaidAmount, currency)}</span>
+                                            <span>{pctPaid}%</span>
+                                        </div>
+                                        <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${Math.min(pctPaid, 100)}%`,
+                                                borderRadius: '3px',
+                                                background: 'var(--success)',
+                                                transition: 'width 0.6s ease',
+                                            }} />
+                                        </div>
                                     </div>
-                                    {loan.description && <p className="loan-card__desc">{loan.description}</p>}
-                                    <small style={{ color: 'var(--success)' }}>✓ Settled{loan.settledDate ? ` on ${formatDate(loan.settledDate)}` : ''}</small>
-                                </div>
-                                <div className="loan-card__actions">
-                                    <button className="icon-button" title="Delete" onClick={() => handleDelete(loan.id)}>🗑️</button>
+                                )}
+
+                                {/* Repay form */}
+                                {isRepaying && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', animation: 'fade-up 300ms ease both' }}>
+                                        <input type="number" placeholder="Amount" min="0.01" step="0.01" value={repayAmount}
+                                            onChange={(e) => setRepayAmount(e.target.value)} style={{ flex: 1 }} />
+                                        <button className="primary-button" type="button" disabled={saving || !repayAmount}
+                                            onClick={() => void handleRepay(loan.id, loan.repaidAmount)}>Record</button>
+                                        <button className="secondary-button" type="button"
+                                            onClick={() => { setRepayingLoanId(null); setRepayAmount('') }}>✕</button>
+                                    </div>
+                                )}
+
+                                <div className="button-row" style={{ marginTop: '0.75rem' }}>
+                                    {!isRepaying && (
+                                        <button className="secondary-button" type="button" style={{ fontSize: '0.85rem' }}
+                                            onClick={() => { setRepayingLoanId(loan.id); setRepayAmount('') }}>💰 Repay</button>
+                                    )}
+                                    <button className="secondary-button" type="button" style={{ fontSize: '0.85rem' }}
+                                        onClick={() => void handleSettle(loan.id)}>✅ Settle</button>
+                                    <button className="secondary-button" type="button" style={{ fontSize: '0.85rem' }}
+                                        onClick={() => openEdit(loan)}>✏️ Edit</button>
+                                    <button className="secondary-button" type="button" style={{ fontSize: '0.85rem', color: 'var(--danger)' }}
+                                        onClick={() => void handleDelete(loan.id)}>🗑</button>
                                 </div>
                             </article>
-                        ))}
-                    </div>
+                        )
+                    })}
+                </section>
+            )}
+
+            {/* Settled loans */}
+            {settledLoans.length > 0 && (
+                <section className="stack" style={{ gap: '0.75rem' }}>
+                    <h3>✅ Settled</h3>
+                    {settledLoans.map((loan) => (
+                        <article key={loan.id} className="card" style={{ borderLeft: '4px solid var(--success)', opacity: 0.7 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ margin: 0 }}>{loan.person}</h4>
+                                    <small style={{ color: 'var(--text-muted)' }}>{loan.description || loan.direction} • {formatCurrency(loan.amount, currency)}</small>
+                                </div>
+                                <button className="secondary-button" type="button" style={{ fontSize: '0.85rem', color: 'var(--danger)' }}
+                                    onClick={() => void handleDelete(loan.id)}>🗑</button>
+                            </div>
+                        </article>
+                    ))}
+                </section>
+            )}
+
+            {loans.length === 0 && !showForm && (
+                <section className="card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                    <p style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>💸</p>
+                    <h3>No loans yet</h3>
+                    <p className="section-subtitle">Start tracking money you've lent or borrowed.</p>
+                    <button className="primary-button" type="button" onClick={() => setShowForm(true)} style={{ marginTop: '1rem' }}>
+                        Add your first loan
+                    </button>
                 </section>
             )}
         </main>
