@@ -62,10 +62,6 @@ export const DashboardScreen = () => {
     }
   }, [profile])
 
-  if (loading) {
-    return <LoadingScreen />
-  }
-
   const currentMonth = toMonthKey(new Date().toISOString())
 
   const { currentMonthExpenses, currentMonthIncome, currentBudgetLimit, progress, totalRemaining, overspentCategories, pieData, trendData, savingsRate, topCategory } = useMemo(() => {
@@ -81,7 +77,6 @@ export const DashboardScreen = () => {
       })
       .sort((a, b) => b.value - a.value)
     return {
-      monthTransactions: monthTxns,
       currentMonthExpenses: monthExp,
       currentMonthIncome: monthInc,
       currentBudgetLimit: budgetLimit,
@@ -111,6 +106,10 @@ export const DashboardScreen = () => {
     velocityData: velocityGaugeData(transactions, budgets, currentMonth),
     scatterData: transactionScatterData(transactions, categories, currentMonth),
   }), [transactions, budgets, categories, currentMonth])
+
+  if (loading) {
+    return <LoadingScreen />
+  }
 
   const signals: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
