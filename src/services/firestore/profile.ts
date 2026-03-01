@@ -19,6 +19,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   highContrast: false,
   emailNotifications: true,
   pushNotifications: false,
+  onboardingComplete: false,
 }
 
 export const createUserProfile = async (
@@ -65,6 +66,7 @@ const mapSnapshotToProfile = (snapshot: DocumentSnapshot): UserProfile | null =>
         typeof preferences.pushNotifications === 'boolean'
           ? preferences.pushNotifications
           : DEFAULT_PREFERENCES.pushNotifications,
+      onboardingComplete: Boolean(preferences.onboardingComplete),
     },
   }
 }

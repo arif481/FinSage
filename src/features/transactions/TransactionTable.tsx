@@ -5,6 +5,8 @@ interface TransactionTableProps {
   categories: Category[]
   currency: string
   transactions: FinanceTransaction[]
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
   onDelete: (transactionId: string) => Promise<void>
   onEdit: (transaction: FinanceTransaction) => void
 }
@@ -17,6 +19,8 @@ export const TransactionTable = ({
   categories,
   currency,
   transactions,
+  selectedIds,
+  onToggleSelect,
   onDelete,
   onEdit,
 }: TransactionTableProps) => {
@@ -24,10 +28,12 @@ export const TransactionTable = ({
     return (
       <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
         <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</p>
-        <p className="empty-state">No transactions yet. Add your first expense to get started.</p>
+        <p className="empty-state">No transactions match your filters.</p>
       </div>
     )
   }
+
+  const hasBulk = selectedIds !== undefined && onToggleSelect !== undefined
 
   return (
     <div className="card">
@@ -36,6 +42,7 @@ export const TransactionTable = ({
           <caption className="sr-only">Transactions list</caption>
           <thead>
             <tr>
+              {hasBulk && <th scope="col" style={{ width: '2rem' }}></th>}
               <th scope="col">Date</th>
               <th scope="col">Description</th>
               <th scope="col">Category</th>
@@ -47,11 +54,26 @@ export const TransactionTable = ({
           <tbody>
             {transactions.map((transaction, index) => {
               const isExpense = transaction.type === 'expense'
+              const isSelected = hasBulk && selectedIds.has(transaction.id)
               return (
                 <tr
                   key={transaction.id}
-                  style={{ animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${Math.min(index * 40, 400)}ms` }}
+                  style={{
+                    animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${Math.min(index * 40, 400)}ms`,
+                    background: isSelected ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : undefined,
+                  }}
                 >
+                  {hasBulk && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelect(transaction.id)}
+                        aria-label={`Select ${transaction.description}`}
+                        style={{ cursor: 'pointer', width: '1rem', height: '1rem' }}
+                      />
+                    </td>
+                  )}
                   <td>{formatDate(transaction.date)}</td>
                   <td><strong>{transaction.description}</strong></td>
                   <td>
@@ -97,3 +119,4 @@ export const TransactionTable = ({
     </div>
   )
 }
+

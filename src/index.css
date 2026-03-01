@@ -2022,6 +2022,34 @@ a:focus-visible {
   .month-comparison__bar-label {
     width: 4rem;
   }
+
+  .screen-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .grid-three {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    flex-wrap: wrap;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 2.75rem;
+    font-size: 0.9rem;
+  }
+
+  .achievements__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chip-row {
+    flex-wrap: wrap;
+  }
 }
 
 .insight-card__description {
@@ -2489,6 +2517,10 @@ a:focus-visible {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -2497,6 +2529,10 @@ a:focus-visible {
   }
 
   .auth-trust-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-three {
     grid-template-columns: 1fr;
   }
 }
@@ -2552,5 +2588,16 @@ a:focus-visible {
   .chat-input-row,
   .budget-row__controls {
     grid-template-columns: 1fr;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 2.75rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .toast {
+    max-width: calc(100vw - 2rem);
   }
 }
