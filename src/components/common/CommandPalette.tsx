@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
 import { useAuth } from '@/hooks/useAuth'
@@ -75,7 +75,7 @@ export const CommandPalette = () => {
         setActiveIndex(0)
     }, [query])
 
-    const navActions: Action[] = [
+    const navActions: Action[] = useMemo(() => [
         { id: 'dashboard', label: 'Go to Dashboard', icon: '📊', shortcut: 'D', onSelect: () => navigate('/') },
         { id: 'transactions', label: 'Go to Transactions', icon: '💳', shortcut: 'T', onSelect: () => navigate('/transactions') },
         { id: 'budgets', label: 'Go to Budgets', icon: '📋', shortcut: 'B', onSelect: () => navigate('/budgets') },
@@ -83,12 +83,13 @@ export const CommandPalette = () => {
         { id: 'goals', label: 'Go to Savings Goals', icon: '🎯', onSelect: () => navigate('/goals') },
         { id: 'splits', label: 'Go to Split Expenses', icon: '🔀', onSelect: () => navigate('/splits') },
         { id: 'recurring', label: 'Go to Recurring', icon: '🔄', onSelect: () => navigate('/recurring') },
+        { id: 'categories', label: 'Manage Categories', icon: '🗂️', onSelect: () => navigate('/categories') },
         { id: 'chat', label: 'Ask AI Assistant', icon: '🤖', shortcut: 'A', onSelect: () => navigate('/chat') },
         { id: 'reports', label: 'View Reports', icon: '📈', shortcut: 'R', onSelect: () => navigate('/reports') },
         { id: 'settings', label: 'Open Settings', icon: '⚙️', shortcut: 'S', onSelect: () => navigate('/settings') },
-    ]
+    ], [navigate])
 
-    const transactionResults: Action[] = query.length > 2
+    const transactionResults: Action[] = useMemo(() => query.length > 2
         ? transactions
             .filter(t => fuzzyMatch(query, t.description) || t.tags.some(tag => fuzzyMatch(query, tag)))
             .slice(0, 5)
@@ -99,13 +100,14 @@ export const CommandPalette = () => {
                 onSelect: () => navigate('/transactions'),
             }))
         : []
+        , [query, transactions, navigate])
 
-    const filteredActions = [
+    const filteredActions = useMemo(() => [
         ...navActions
             .filter(a => fuzzyMatch(query, a.label))
             .sort((a, b) => fuzzyScore(query, a.label) - fuzzyScore(query, b.label)),
         ...transactionResults,
-    ]
+    ], [query, navActions, transactionResults])
 
     const selectAction = useCallback((action: Action) => {
         action.onSelect()
