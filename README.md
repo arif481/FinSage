@@ -10,10 +10,19 @@ Built and maintained by **Arif**.
 
 - Secure authentication (email/password and Google sign-in)
 - Real-time transaction and budget management
-- Category-level spending analytics and monthly trends
+- Custom category management with icons and colors
+- Loan tracking with partial repayments and linked transactions
+- Savings goals with progress tracking and status management
+- Split expenses tracking with settlement workflow
+- Recurring transaction rules (daily, weekly, monthly)
+- Category-level spending analytics, monthly trends, and 14+ chart types
 - CSV import/export for transaction portability
 - Gemini-powered assistant for categorization and chat analysis
-- Accessible, responsive UI with theme and contrast support
+- Onboarding wizard for new users
+- Command palette (Cmd+K) for quick navigation
+- In-app notification center
+- Financial health score, spending anomaly detection, and streak achievements
+- Accessible, responsive UI with theme, contrast, and currency support
 
 ## Technology stack
 
@@ -26,15 +35,19 @@ Built and maintained by **Arif**.
 
 ```text
 src/
-  components/
-  context/
-  features/
-  hooks/
-  screens/
-  services/
-functions/
-docs/
-.github/workflows/
+  app/            # AppProviders (auth + theme)
+  components/     # charts/, common/, layout/, smart/
+  constants/      # default categories
+  context/        # AuthContext, ThemeContext
+  features/       # budgets, chatbot, transactions
+  hooks/          # useAuth, useCurrency, useFinanceCollections, useUserProfile, useTheme
+  screens/        # 11 protected + 5 public screens
+  services/       # ai/, csv/, firebase/, firestore/
+  types/          # TypeScript domain types
+  utils/          # finance calculations, formatting
+functions/        # Firebase Cloud Functions (Gemini AI)
+docs/             # Architecture, Deployment guides
+.github/workflows/ # CI, GitHub Pages deploy, Release Please
 ```
 
 ## Local setup
@@ -66,6 +79,7 @@ npm run test:rules
 ## Deployment
 
 - Frontend deployment: GitHub Pages workflow (`deploy-pages.yml`)
+- Firestore rules: manual deploy via `firebase deploy --only firestore:rules`
 - Release automation: Release Please workflow (`release-please.yml`)
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full required secrets and operational steps.

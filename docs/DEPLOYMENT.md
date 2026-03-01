@@ -14,22 +14,33 @@ Required repository secrets:
 - `VITE_FIREBASE_MEASUREMENT_ID` (optional)
 - `VITE_RECAPTCHA_SITE_KEY` (optional)
 
-## Firebase deploy (functions + rules)
+## Firebase deploy (rules + functions)
 
-Workflow: `.github/workflows/deploy-firebase-functions.yml`
+Firestore rules and Cloud Functions are deployed manually via the Firebase CLI.
+The automated `deploy-firebase-functions.yml` workflow has been removed.
 
-Required repository secrets:
-- `FIREBASE_TOKEN`
-- `GEMINI_API_KEY`
+Required Firebase CLI setup:
+- Logged in via `firebase login` with the project owner account
+- Project ID: `finsage-89a1c`
 
-Project target is set in `.firebaserc`.
+### Deploy Firestore rules only
 
-## Manual deploy commands
+```bash
+firebase deploy --only firestore:rules --project finsage-89a1c
+```
+
+### Deploy rules + indexes + functions
 
 ```bash
 npm --prefix functions install
 npm run typecheck:functions
 firebase deploy --only firestore:rules,firestore:indexes,functions --project finsage-89a1c
+```
+
+Gemini API key must be set as a Firebase Functions secret:
+
+```bash
+firebase functions:secrets:set GEMINI_API_KEY --project finsage-89a1c
 ```
 
 ## Automated versioned releases
