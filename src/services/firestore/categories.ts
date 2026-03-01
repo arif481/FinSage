@@ -94,3 +94,32 @@ export const seedDefaultCategories = async (uid: string): Promise<void> => {
 
   await batch.commit()
 }
+
+export const deleteCategory = async (uid: string, categoryId: string): Promise<void> => {
+  const ref = doc(db, userSubcollectionPath(uid, collectionName), categoryId)
+  const { deleteDoc } = await import('firebase/firestore')
+  await deleteDoc(ref)
+}
+
+/** Reassign all transactions from sourceCategoryId to targetCategoryId, then delete source */
+export const mergeCategories = async (
+  uid: string,
+  sourceCategoryId: string,
+  targetCategoryId: string,
+): Promise<void> => {
+  const transactionsRef = collection(db, userSubcollectionPath(uid, 'transactions'))
+  const snapshot = await getDocs(transactionsRef)
+
+  const batch = writeBatch(db)
+
+  for (const d of snapshot.docs) {
+    if (d.data().categoryId === sourceCategoryId) {
+      batch.update(d.ref, { categoryId: targetCategoryId, updatedAt: serverTimestamp() })
+    }
+  }
+
+  // Delete the source category
+  batch.delete(doc(db, userSubcollectionPath(uid, collectionName), sourceCategoryId))
+
+  await batch.commit()
+}

@@ -18,9 +18,14 @@ import {
   importTransactionsBatch,
   updateTransaction,
 } from '@/services/firestore/transactions'
-import { FinanceTransaction } from '@/types/finance'
+import { FinanceTransaction, TransactionType } from '@/types/finance'
 import { totalExpenses, totalIncome } from '@/utils/finance'
 import { formatCurrency, toMonthKey } from '@/utils/format'
+import { showToast } from '@/components/common/Toast'
+
+type DateRange = 'this-month' | 'last-30' | 'last-90' | 'this-year' | 'all' | 'custom'
+type SortField = 'date' | 'amount' | 'description'
+type SortDir = 'asc' | 'desc'
 
 const parseTags = (tagsRaw?: string): string[] => {
   if (!tagsRaw) {
@@ -52,19 +57,67 @@ export const TransactionsScreen = () => {
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all')
+  const [dateRange, setDateRange] = useState<DateRange>('this-month')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
-      const matchesSearch =
-        transaction.description.toLowerCase().includes(search.toLowerCase()) ||
-        transaction.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
+    const now = new Date()
+    let result = transactions
 
-      const matchesCategory =
-        selectedCategory === 'all' || transaction.categoryId.toLowerCase() === selectedCategory
+    // Date range filter
+    if (dateRange === 'this-month') {
+      const monthKey = toMonthKey(now.toISOString())
+      result = result.filter((t) => toMonthKey(t.date) === monthKey)
+    } else if (dateRange === 'last-30') {
+      const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      result = result.filter((t) => t.date >= cutoff)
+    } else if (dateRange === 'last-90') {
+      const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString()
+      result = result.filter((t) => t.date >= cutoff)
+    } else if (dateRange === 'this-year') {
+      const yearStart = `${now.getFullYear()}-01-01`
+      result = result.filter((t) => t.date >= yearStart)
+    } else if (dateRange === 'custom' && customFrom && customTo) {
+      result = result.filter((t) => t.date.slice(0, 10) >= customFrom && t.date.slice(0, 10) <= customTo)
+    }
 
-      return matchesSearch && matchesCategory
+    // Type filter
+    if (typeFilter !== 'all') {
+      result = result.filter((t) => t.type === typeFilter)
+    }
+
+    // Search
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (t) =>
+          t.description.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
+      )
+    }
+
+    // Category
+    if (selectedCategory !== 'all') {
+      result = result.filter((t) => t.categoryId.toLowerCase() === selectedCategory)
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'date') cmp = a.date.localeCompare(b.date)
+      else if (sortField === 'amount') cmp = a.amount - b.amount
+      else cmp = a.description.localeCompare(b.description)
+      return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [search, selectedCategory, transactions])
+
+    return result
+  }, [search, selectedCategory, typeFilter, dateRange, customFrom, customTo, sortField, sortDir, transactions])
 
   const currentMonth = toMonthKey(new Date().toISOString())
   const currentMonthTransactions = transactions.filter(
@@ -103,6 +156,20 @@ export const TransactionsScreen = () => {
     }
 
     await deleteTransaction(user.uid, transactionId)
+  }
+
+  const handleBulkDelete = async () => {
+    if (!user || selectedIds.size === 0) return
+    setBulkDeleting(true)
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => deleteTransaction(user.uid, id)))
+      showToast(`Deleted ${selectedIds.size} transactions.`, 'success')
+      setSelectedIds(new Set())
+    } catch {
+      showToast('Failed to delete some transactions.', 'error')
+    } finally {
+      setBulkDeleting(false)
+    }
   }
 
   const handleAiSuggestion = async (description: string) => {
@@ -156,10 +223,41 @@ export const TransactionsScreen = () => {
     downloadCsv('finsage-transactions.csv', csv)
   }
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredTransactions.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredTransactions.map((t) => t.id)))
+    }
+  }
+
+  const cycleSortField = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
+
+  const sortIndicator = (field: SortField) => {
+    if (sortField !== field) return ''
+    return sortDir === 'asc' ? ' ↑' : ' ↓'
+  }
+
   const insightData = [
     { label: 'Month income', value: formatCurrency(monthIncome, currency) },
     { label: 'Month expense', value: formatCurrency(monthExpense, currency) },
-    { label: 'Filtered transactions', value: String(filteredTransactions.length) },
+    { label: 'Showing', value: `${filteredTransactions.length} of ${transactions.length}` },
     { label: 'Filtered net', value: formatCurrency(filteredIncome - filteredExpense, currency) },
   ]
 
@@ -210,37 +308,116 @@ export const TransactionsScreen = () => {
         onImport={handleImport}
       />
 
-      <section className="card field-row" style={{ '--stagger': 2 } as React.CSSProperties}>
-        <label className="field">
-          <span>🔍 Search</span>
-          <input
-            placeholder="Search description or tags"
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
+      {/* Filters section */}
+      <section className="card stack" style={{ '--stagger': 2 } as React.CSSProperties}>
+        <div className="field-row" style={{ flexWrap: 'wrap' }}>
+          {/* Date range */}
+          <label className="field">
+            <span>📅 Date range</span>
+            <select value={dateRange} onChange={(e) => setDateRange(e.target.value as DateRange)}>
+              <option value="this-month">This month</option>
+              <option value="last-30">Last 30 days</option>
+              <option value="last-90">Last 90 days</option>
+              <option value="this-year">This year</option>
+              <option value="all">All time</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </label>
 
-        <label className="field">
-          <span>📁 Category</span>
-          <select
-            value={selectedCategory}
-            onChange={(event) => setSelectedCategory(event.target.value)}
-          >
-            <option value="all">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          {/* Type filter */}
+          <label className="field">
+            <span>🔀 Type</span>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | TransactionType)}>
+              <option value="all">All types</option>
+              <option value="income">Income only</option>
+              <option value="expense">Expense only</option>
+            </select>
+          </label>
+
+          {/* Search */}
+          <label className="field">
+            <span>🔍 Search</span>
+            <input
+              placeholder="Search description or tags"
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+
+          {/* Category */}
+          <label className="field">
+            <span>📁 Category</span>
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+            >
+              <option value="all">All categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {/* Custom date range inputs */}
+        {dateRange === 'custom' && (
+          <div className="field-row" style={{ animation: 'fade-up 300ms ease both' }}>
+            <label className="field">
+              <span>From</span>
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>To</span>
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+            </label>
+          </div>
+        )}
+      </section>
+
+      {/* Bulk actions + sort controls */}
+      <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button className="secondary-button" type="button" onClick={toggleSelectAll} style={{ fontSize: '0.85rem' }}>
+            {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0 ? '☑ Deselect all' : '☐ Select all'}
+          </button>
+          {selectedIds.size > 0 && (
+            <>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{selectedIds.size} selected</span>
+              <button className="secondary-button" type="button" disabled={bulkDeleting}
+                style={{ fontSize: '0.85rem', color: 'var(--danger)' }}
+                onClick={() => void handleBulkDelete()}>
+                🗑 Delete selected
+              </button>
+              <button className="secondary-button" type="button"
+                style={{ fontSize: '0.85rem' }}
+                onClick={() => handleExport(filteredTransactions.filter((t) => selectedIds.has(t.id)))}>
+                📤 Export selected
+              </button>
+            </>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '0.25rem' }}>
+          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('date')}>
+            Date{sortIndicator('date')}
+          </button>
+          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('amount')}>
+            Amount{sortIndicator('amount')}
+          </button>
+          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('description')}>
+            Name{sortIndicator('description')}
+          </button>
+        </div>
       </section>
 
       <TransactionTable
         categories={categories}
         currency={currency}
         transactions={filteredTransactions}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
         onDelete={handleDelete}
         onEdit={(transaction) => {
           setSuggestedCategoryId(undefined)

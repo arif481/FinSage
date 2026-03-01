@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { CommandPalette } from '@/components/common/CommandPalette'
+import { NotificationCenter } from '@/components/common/NotificationCenter'
 import { ToastContainer } from '@/components/common/Toast'
 
 const DashboardIcon = () => (
@@ -45,6 +46,24 @@ const SettingsIcon = () => (
   </svg>
 )
 
+const GoalsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+  </svg>
+)
+
+const SplitsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 3h5v5" /><path d="M8 3H3v5" /><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" /><path d="m15 9 6-6" />
+  </svg>
+)
+
+const RecurringIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.5 2v6h-6" /><path d="M2.5 22v-6h6" /><path d="M22 11.5A10 10 0 0 0 3.2 7.2" /><path d="M2 12.5a10 10 0 0 0 18.8 4.2" />
+  </svg>
+)
+
 const LogOutIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
@@ -56,6 +75,9 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', short: 'TX', icon: <TransactionsIcon /> },
   { to: '/budgets', label: 'Budgets', short: 'BG', icon: <BudgetsIcon /> },
   { to: '/loans', label: 'Loans', short: 'LN', icon: <LoansIcon /> },
+  { to: '/goals', label: 'Goals', short: 'GL', icon: <GoalsIcon /> },
+  { to: '/splits', label: 'Splits', short: 'SP', icon: <SplitsIcon /> },
+  { to: '/recurring', label: 'Recurring', short: 'RC', icon: <RecurringIcon /> },
   { to: '/chat', label: 'Assistant', short: 'AI', icon: <AssistantIcon /> },
   { to: '/reports', label: 'Reports', short: 'RP', icon: <ReportsIcon /> },
   { to: '/settings', label: 'Settings', short: 'ST', icon: <SettingsIcon /> },
@@ -81,6 +103,11 @@ export const AppShell = () => {
             <span className="status-dot status-dot--good" style={{ marginRight: '0.3rem' }} />
             Live workspace
           </p>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem', marginBottom: '0.25rem' }}>
+          <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>⌘K to search</small>
+          <NotificationCenter />
         </div>
 
         <nav className="app-shell__nav">

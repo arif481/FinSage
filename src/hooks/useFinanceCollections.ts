@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { subscribeBudgets } from '@/services/firestore/budgets'
 import { subscribeCategories } from '@/services/firestore/categories'
 import { subscribeLoans } from '@/services/firestore/loans'
+import { subscribeRecurringRules } from '@/services/firestore/recurringRules'
+import { subscribeSavingsGoals } from '@/services/firestore/savingsGoals'
+import { subscribeSplitExpenses } from '@/services/firestore/splitExpenses'
 import { subscribeTransactions } from '@/services/firestore/transactions'
-import { Budget, Category, FinanceTransaction, Loan } from '@/types/finance'
+import { Budget, Category, FinanceTransaction, Loan, RecurringRule, SavingsGoal, SplitExpense } from '@/types/finance'
 
 interface UseFinanceCollectionsResult {
   budgets: Budget[]
@@ -11,6 +14,9 @@ interface UseFinanceCollectionsResult {
   error: string | null
   loading: boolean
   loans: Loan[]
+  recurringRules: RecurringRule[]
+  savingsGoals: SavingsGoal[]
+  splitExpenses: SplitExpense[]
   transactions: FinanceTransaction[]
 }
 
@@ -19,6 +25,9 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
   const [categories, setCategories] = useState<Category[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
+  const [splitExpenses, setSplitExpenses] = useState<SplitExpense[]>([])
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +37,9 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       setCategories([])
       setBudgets([])
       setLoans([])
+      setSavingsGoals([])
+      setSplitExpenses([])
+      setRecurringRules([])
       setLoading(false)
       setError(null)
       return
@@ -40,9 +52,12 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
     let categoriesReady = false
     let budgetsReady = false
     let loansReady = false
+    let savingsGoalsReady = false
+    let splitExpensesReady = false
+    let recurringRulesReady = false
 
     const markReady = () => {
-      if (transactionsReady && categoriesReady && budgetsReady && loansReady) {
+      if (transactionsReady && categoriesReady && budgetsReady && loansReady && savingsGoalsReady && splitExpensesReady && recurringRulesReady) {
         setLoading(false)
       }
     }
@@ -100,11 +115,50 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
       },
     )
 
+    const unsubscribeSavingsGoals = subscribeSavingsGoals(
+      uid,
+      (nextGoals) => {
+        setSavingsGoals(nextGoals)
+        savingsGoalsReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
+
+    const unsubscribeSplitExpenses = subscribeSplitExpenses(
+      uid,
+      (nextSplits) => {
+        setSplitExpenses(nextSplits)
+        splitExpensesReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
+
+    const unsubscribeRecurringRules = subscribeRecurringRules(
+      uid,
+      (nextRules) => {
+        setRecurringRules(nextRules)
+        recurringRulesReady = true
+        markReady()
+      },
+      (listenerError) => {
+        onListenerError(listenerError.message)
+      },
+    )
+
     return () => {
       unsubscribeTransactions()
       unsubscribeCategories()
       unsubscribeBudgets()
       unsubscribeLoans()
+      unsubscribeSavingsGoals()
+      unsubscribeSplitExpenses()
+      unsubscribeRecurringRules()
     }
   }, [uid])
 
@@ -114,6 +168,10 @@ export const useFinanceCollections = (uid: string | undefined): UseFinanceCollec
     error,
     loading,
     loans,
+    recurringRules,
+    savingsGoals,
+    splitExpenses,
     transactions,
   }
 }
+

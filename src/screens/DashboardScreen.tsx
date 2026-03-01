@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CashFlowWaterfall } from '@/components/charts/CashFlowWaterfall'
 import { CategoryBarChart } from '@/components/charts/CategoryBarChart'
@@ -22,6 +23,8 @@ import { StreakAchievements } from '@/components/smart/StreakAchievements'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
+import { useUserProfile } from '@/hooks/useUserProfile'
+import { OnboardingWizard } from '@/components/common/OnboardingWizard'
 import {
   budgetProgress,
   cashFlowWaterfall,
@@ -50,58 +53,64 @@ export const DashboardScreen = () => {
   const { user } = useAuth()
   const currency = useCurrency()
   const { budgets, categories, error, loading, transactions } = useFinanceCollections(user?.uid)
+  const { profile } = useUserProfile(user?.uid)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    if (profile && !profile.preferences.onboardingComplete) {
+      setShowOnboarding(true)
+    }
+  }, [profile])
 
   if (loading) {
     return <LoadingScreen />
   }
 
   const currentMonth = toMonthKey(new Date().toISOString())
-  const monthTransactions = transactions.filter(
-    (transaction) => toMonthKey(transaction.date) === currentMonth,
-  )
-  const currentMonthExpenses = totalExpenses(monthTransactions)
-  const currentMonthIncome = totalIncome(monthTransactions)
-  const currentBudgetLimit = budgets
-    .filter((budget) => budget.month === currentMonth)
-    .reduce((sum, budget) => sum + budget.limit, 0)
 
-  const progress = budgetProgress(budgets, transactions, currentMonth)
-  const totalRemaining = progress.reduce((sum, item) => sum + item.remaining, 0)
-  const overspentCategories = progress.filter((item) => item.remaining < 0)
-  const pieData = spendingByCategory(transactions)
-    .map((item) => {
-      const category = categories.find((entry) => entry.id === item.categoryId)
-      return {
-        color: category?.color ?? '#8f95a1',
-        label: category?.name ?? 'Other',
-        value: item.amount,
-      }
-    })
-    .sort((a, b) => b.value - a.value)
-  const trendData = monthlyTrend(transactions)
-  const savingsRate =
-    currentMonthIncome > 0
-      ? ((currentMonthIncome - currentMonthExpenses) / currentMonthIncome) * 100
-      : null
-  const topCategory = pieData[0]
+  const { currentMonthExpenses, currentMonthIncome, currentBudgetLimit, progress, totalRemaining, overspentCategories, pieData, trendData, savingsRate, topCategory } = useMemo(() => {
+    const monthTxns = transactions.filter(t => toMonthKey(t.date) === currentMonth)
+    const monthExp = totalExpenses(monthTxns)
+    const monthInc = totalIncome(monthTxns)
+    const budgetLimit = budgets.filter(b => b.month === currentMonth).reduce((s, b) => s + b.limit, 0)
+    const prog = budgetProgress(budgets, transactions, currentMonth)
+    const pie = spendingByCategory(transactions)
+      .map(item => {
+        const cat = categories.find(c => c.id === item.categoryId)
+        return { color: cat?.color ?? '#8f95a1', label: cat?.name ?? 'Other', value: item.amount }
+      })
+      .sort((a, b) => b.value - a.value)
+    return {
+      monthTransactions: monthTxns,
+      currentMonthExpenses: monthExp,
+      currentMonthIncome: monthInc,
+      currentBudgetLimit: budgetLimit,
+      progress: prog,
+      totalRemaining: prog.reduce((s, item) => s + item.remaining, 0),
+      overspentCategories: prog.filter(item => item.remaining < 0),
+      pieData: pie,
+      trendData: monthlyTrend(transactions),
+      savingsRate: monthInc > 0 ? ((monthInc - monthExp) / monthInc) * 100 : null,
+      topCategory: pie[0],
+    }
+  }, [transactions, budgets, categories, currentMonth])
 
-  // Smart analytics (Phase 1 & 2)
-  const dailyData = dailySpending(transactions, currentMonth)
-  const weekdayData = weekdayAnalysis(transactions)
-  const heatmapCells = spendingHeatmap(transactions, currentMonth)
-  const categoryBars = categoryComparison(transactions, categories)
-  const smartInsights = generateSmartInsights(transactions, budgets, currentMonth)
-  const healthScore = computeHealthScore(transactions, budgets, currentMonth)
-  const anomalies = detectAnomalies(transactions)
-  const monthComparison = monthOverMonthComparison(transactions, currentMonth)
-  const achievements = computeAchievements(transactions, budgets, currentMonth)
-  const cashFlow = cashFlowWaterfall(transactions, categories, currentMonth)
-
-  // Phase 3 smart visuals
-  const treemapData = categoryTreemapData(transactions, categories, currentMonth)
-  const netWorthData = netWorthProjectionData(transactions)
-  const velocityData = velocityGaugeData(transactions, budgets, currentMonth)
-  const scatterData = transactionScatterData(transactions, categories, currentMonth)
+  const { dailyData, weekdayData, heatmapCells, categoryBars, smartInsights, healthScore, anomalies, monthComparison, achievements, cashFlow, treemapData, netWorthData, velocityData, scatterData } = useMemo(() => ({
+    dailyData: dailySpending(transactions, currentMonth),
+    weekdayData: weekdayAnalysis(transactions),
+    heatmapCells: spendingHeatmap(transactions, currentMonth),
+    categoryBars: categoryComparison(transactions, categories),
+    smartInsights: generateSmartInsights(transactions, budgets, currentMonth),
+    healthScore: computeHealthScore(transactions, budgets, currentMonth),
+    anomalies: detectAnomalies(transactions),
+    monthComparison: monthOverMonthComparison(transactions, currentMonth),
+    achievements: computeAchievements(transactions, budgets, currentMonth),
+    cashFlow: cashFlowWaterfall(transactions, categories, currentMonth),
+    treemapData: categoryTreemapData(transactions, categories, currentMonth),
+    netWorthData: netWorthProjectionData(transactions),
+    velocityData: velocityGaugeData(transactions, budgets, currentMonth),
+    scatterData: transactionScatterData(transactions, categories, currentMonth),
+  }), [transactions, budgets, categories, currentMonth])
 
   const signals: Array<{ text: string; tone: 'good' | 'warning' | 'danger' | 'primary' }> = []
 
@@ -120,6 +129,7 @@ export const DashboardScreen = () => {
 
   return (
     <main className="screen stack">
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       {error ? (
         <p className="error-text">Data access error: {error}. Confirm Firestore rules are deployed.</p>
       ) : null}
