@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.10.0...finsage-web-v0.11.0) (2026-03-01)
+
+
+### Features
+
+* major upgrade — phases 1-6 ([c790721](https://github.com/arif481/FinSage/commit/c7907215752871bdc0a17bcca2e8c3770de9e9e3))
+* update firestore rules for advanced loans, savings goals and split expenses ([7e206e9](https://github.com/arif481/FinSage/commit/7e206e9b2a532a8e0ac77b97c2a8087def027136))
+
+
+### Bug Fixes
+
+* onboarding wizard loop and firebase rules ([5fface0](https://github.com/arif481/FinSage/commit/5fface02fc769527e518fe9f95805721f4d82805))
+* resolve eslint lint errors — conditional hooks and unstable deps ([d05d263](https://github.com/arif481/FinSage/commit/d05d26358fbcbfc3816f1cd027c9cda646fb2771))
+
 ## [0.10.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.9.1...finsage-web-v0.10.0) (2026-02-25)
 
 
