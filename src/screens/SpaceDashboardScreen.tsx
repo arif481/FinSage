@@ -19,14 +19,15 @@ export const SpaceDashboardScreen = () => {
     const { transactions, loans, reminders, activities, loading, error } = useSpaceCollections(spaceId)
     const [codeCopied, setCodeCopied] = useState(false)
     const members = space?.members ?? []
+    const inviteLink = space ? `${window.location.origin}/spaces?invite=${encodeURIComponent(space.inviteCode)}` : ''
 
-    const handleCopyCode = async () => {
+    const handleCopyInviteLink = async () => {
         if (!space) return
 
         try {
-            await navigator.clipboard.writeText(space.inviteCode)
+            await navigator.clipboard.writeText(inviteLink)
             setCodeCopied(true)
-            showToast('Invite code copied!', 'success')
+            showToast('Invite link copied!', 'success')
             setTimeout(() => setCodeCopied(false), 2000)
         } catch {
             showToast('Failed to copy', 'error')
@@ -137,10 +138,10 @@ export const SpaceDashboardScreen = () => {
                     <button
                         className="invite-code-btn"
                         type="button"
-                        onClick={() => void handleCopyCode()}
-                        title="Copy invite code"
+                        onClick={() => void handleCopyInviteLink()}
+                        title="Copy invite link"
                     >
-                        <span className="invite-code">{space.inviteCode}</span>
+                        <span className="invite-code">Invite link</span>
                         <span>{codeCopied ? '✅' : '📋'}</span>
                     </button>
                 </div>
