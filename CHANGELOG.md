@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.11.0...finsage-web-v0.12.0) (2026-04-17)
+
+
+### Features
+
+* add shareable space invite link flow ([173b63e](https://github.com/arif481/FinSage/commit/173b63e04e783abb3ecd52bac7c27b86219e9e46))
+* add Space — collaborative financial workspaces ([86feb4a](https://github.com/arif481/FinSage/commit/86feb4ac482af223482ce0929613477a0596ed5c))
+
+
+### Bug Fixes
+
+* generate router-aware space invite links ([376bf98](https://github.com/arif481/FinSage/commit/376bf98c3cd0f1ec14e497d9eccca0d008e27bc7))
+* guard undefined space in dashboard copy handler ([7c55b8c](https://github.com/arif481/FinSage/commit/7c55b8cddb391046c76e6d2cf5dace2dfa1b00ef))
+* harden space join flow and Firestore transport ([c4fa264](https://github.com/arif481/FinSage/commit/c4fa2640e04b54a8ba37c9fd68eee98bd8fb7b55))
+* reload app on stale dynamic import chunks ([fbfab48](https://github.com/arif481/FinSage/commit/fbfab489ceb114a01dccb267eccbb811ecac7c25))
+* resolve SpaceDashboardScreen hooks lint errors ([107c986](https://github.com/arif481/FinSage/commit/107c98688a048c87e5b3fd1fca618ee3d66ec762))
+
 ## [0.11.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.10.0...finsage-web-v0.11.0) (2026-03-01)
 
 
