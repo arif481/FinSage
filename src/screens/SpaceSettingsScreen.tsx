@@ -67,7 +67,12 @@ export const SpaceSettingsScreen = () => {
 
     if (loading) return <LoadingScreen label="Loading settings..." />
     if (!space) { navigate('/spaces'); return null }
-    const inviteLink = `${window.location.origin}/spaces?invite=${encodeURIComponent(space.inviteCode)}`
+    const baseUrl = import.meta.env.BASE_URL
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+    const invitePath = `spaces?invite=${encodeURIComponent(space.inviteCode)}`
+    const inviteLink = import.meta.env.VITE_ROUTER_MODE === 'hash'
+        ? `${window.location.origin}${normalizedBase}#/${invitePath}`
+        : `${window.location.origin}${normalizedBase}${invitePath}`
 
     const isOwner = space.createdBy === user?.uid
     const myMember = space.members.find((m) => m.uid === user?.uid)

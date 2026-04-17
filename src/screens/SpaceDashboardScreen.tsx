@@ -19,7 +19,14 @@ export const SpaceDashboardScreen = () => {
     const { transactions, loans, reminders, activities, loading, error } = useSpaceCollections(spaceId)
     const [codeCopied, setCodeCopied] = useState(false)
     const members = space?.members ?? []
-    const inviteLink = space ? `${window.location.origin}/spaces?invite=${encodeURIComponent(space.inviteCode)}` : ''
+    const baseUrl = import.meta.env.BASE_URL
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+    const invitePath = space ? `spaces?invite=${encodeURIComponent(space.inviteCode)}` : ''
+    const inviteLink = !space
+        ? ''
+        : import.meta.env.VITE_ROUTER_MODE === 'hash'
+            ? `${window.location.origin}${normalizedBase}#/${invitePath}`
+            : `${window.location.origin}${normalizedBase}${invitePath}`
 
     const handleCopyInviteLink = async () => {
         if (!space) return
