@@ -414,5 +414,56 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
     }
+
+    // ─── Spaces ───────────────────────────────────────────
+
+    function isSpaceMember(spaceId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/spaces/$(spaceId))
+        && request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberUids;
+    }
+
+    match /spaces/{spaceId} {
+      // Any authenticated user can read (needed for invite code lookup)
+      allow read: if signedIn();
+
+      // Any authenticated user can create a new space
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'name', 'description', 'icon', 'color', 'createdBy',
+          'members', 'memberUids', 'inviteCode', 'createdAt', 'updatedAt'
+        ])
+        && request.auth.uid == request.resource.data.createdBy
+        && request.auth.uid in request.resource.data.memberUids;
+
+      // Only members can update
+      allow update: if isSpaceMember(spaceId);
+
+      // Only the creator can delete
+      allow delete: if signedIn()
+        && resource.data.createdBy == request.auth.uid;
+
+      // Subcollections — members only
+      match /transactions/{txnId} {
+        allow read, write: if isSpaceMember(spaceId);
+      }
+
+      match /loans/{loanId} {
+        allow read, write: if isSpaceMember(spaceId);
+      }
+
+      match /reminders/{reminderId} {
+        allow read, write: if isSpaceMember(spaceId);
+      }
+
+      match /categories/{categoryId} {
+        allow read, write: if isSpaceMember(spaceId);
+      }
+
+      match /activity/{activityId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId);
+      }
+    }
   }
 }
