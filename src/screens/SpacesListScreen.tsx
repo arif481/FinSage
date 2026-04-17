@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpaces } from '@/hooks/useSpaces'
 import { useUserProfile } from '@/hooks/useUserProfile'
@@ -7,7 +7,7 @@ import { seedDefaultSpaceCategories } from '@/services/firestore/spaceCategories
 import { logActivity } from '@/services/firestore/spaceActivity'
 import { LoadingScreen } from '@/components/common/LoadingScreen'
 import { showToast } from '@/components/common/Toast'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const SPACE_ICONS = ['🏠', '💼', '🎯', '👫', '🏦', '🎓', '✈️', '🛒', '🎮', '💳', '🏢', '🤝', '🍕', '⚡', '🔥']
 const SPACE_COLORS = ['#0ea5e9', '#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#06b6d4']
@@ -17,6 +17,7 @@ export const SpacesListScreen = () => {
     const { profile } = useUserProfile(user?.uid)
     const { spaces, loading, error } = useSpaces(user?.uid)
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
 
     const [showCreate, setShowCreate] = useState(false)
     const [showJoin, setShowJoin] = useState(false)
@@ -30,6 +31,14 @@ export const SpacesListScreen = () => {
 
     // Join form
     const [inviteCode, setInviteCode] = useState('')
+    const inviteFromLink = searchParams.get('invite')?.toUpperCase().trim() ?? ''
+
+    useEffect(() => {
+        if (!inviteFromLink) return
+        setInviteCode(inviteFromLink)
+        setShowJoin(true)
+        setShowCreate(false)
+    }, [inviteFromLink])
 
     if (loading) return <LoadingScreen label="Loading spaces..." />
 
@@ -131,7 +140,7 @@ export const SpacesListScreen = () => {
                 <section className="card stack" style={{ animation: 'fade-up 400ms ease both' }}>
                     <h3>🔗 Join a Space</h3>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                        Enter the invite code shared with you to join a space.
+                        Opened via invite link or enter an invite code to join a space.
                     </p>
                     <form onSubmit={(e) => void handleJoin(e)} style={{ display: 'flex', gap: '0.8rem', alignItems: 'flex-end' }}>
                         <label className="field" style={{ flex: 1 }}>

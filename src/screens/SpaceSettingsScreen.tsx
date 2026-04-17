@@ -67,6 +67,7 @@ export const SpaceSettingsScreen = () => {
 
     if (loading) return <LoadingScreen label="Loading settings..." />
     if (!space) { navigate('/spaces'); return null }
+    const inviteLink = `${window.location.origin}/spaces?invite=${encodeURIComponent(space.inviteCode)}`
 
     const isOwner = space.createdBy === user?.uid
     const myMember = space.members.find((m) => m.uid === user?.uid)
@@ -105,10 +106,10 @@ export const SpaceSettingsScreen = () => {
         }
     }
 
-    const handleCopyCode = async () => {
+    const handleCopyInviteLink = async () => {
         try {
-            await navigator.clipboard.writeText(space.inviteCode)
-            showToast('Invite code copied!', 'success')
+            await navigator.clipboard.writeText(inviteLink)
+            showToast('Invite link copied!', 'success')
         } catch {
             showToast('Failed to copy.', 'error')
         }
@@ -312,15 +313,15 @@ export const SpaceSettingsScreen = () => {
                 )}
             </section>
 
-            {/* Invite Code */}
+            {/* Invite Link */}
             <section className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
-                <h3>🔗 Invite Code</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Share this code to invite others to join.</p>
+                <h3>🔗 Invite Link</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Share this link to invite others to join.</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
                     <span className="invite-code" style={{ fontSize: '1.4rem', padding: '0.5rem 1rem', background: 'var(--bg-strong)', borderRadius: 'var(--radius)', fontFamily: "'Space Grotesk', monospace", letterSpacing: '0.12em' }}>
-                        {space.inviteCode}
+                        {inviteLink}
                     </span>
-                    <button className="secondary-button" type="button" onClick={() => void handleCopyCode()}>📋 Copy</button>
+                    <button className="secondary-button" type="button" onClick={() => void handleCopyInviteLink()}>📋 Copy</button>
                     {isAdmin && <button className="ghost-button" type="button" onClick={() => void handleRegenerateCode()}>🔄 Regenerate</button>}
                 </div>
             </section>
