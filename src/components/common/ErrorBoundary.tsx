@@ -24,7 +24,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         console.error('[FinSage ErrorBoundary]', error, info.componentStack)
     }
 
+    private isChunkLoadError(error: Error | null): boolean {
+        if (!error?.message) return false
+        const message = error.message.toLowerCase()
+        return (
+            message.includes('failed to fetch dynamically imported module')
+            || message.includes('importing a module script failed')
+            || message.includes('dynamically imported module')
+        )
+    }
+
     handleReset = () => {
+        if (this.isChunkLoadError(this.state.error)) {
+            window.location.reload()
+            return
+        }
         this.setState({ error: null, hasError: false })
     }
 
@@ -58,7 +72,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                         onClick={this.handleReset}
                         style={{ marginTop: '0.5rem' }}
                     >
-                        Try again
+                        {this.isChunkLoadError(this.state.error) ? 'Reload app' : 'Try again'}
                     </button>
                 </div>
             )
