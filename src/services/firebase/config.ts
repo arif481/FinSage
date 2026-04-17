@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 
 const requiredEnv = {
@@ -35,7 +35,9 @@ export const isFirebaseConfigured = true
 
 export const firebaseApp = initializeApp(firebaseConfig)
 export const auth = getAuth(firebaseApp)
-export const db = getFirestore(firebaseApp)
+export const db = initializeFirestore(firebaseApp, {
+  experimentalAutoDetectLongPolling: true,
+})
 export const functions = getFunctions(firebaseApp, import.meta.env.VITE_FUNCTIONS_REGION ?? 'us-central1')
 
 const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY

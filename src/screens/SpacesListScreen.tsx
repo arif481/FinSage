@@ -107,8 +107,18 @@ export const SpacesListScreen = () => {
             } else {
                 showToast('Invalid invite code. Check and try again.', 'error')
             }
-        } catch {
-            showToast('Failed to join space.', 'error')
+        } catch (error) {
+            const message = error instanceof Error ? error.message : ''
+            const blockedOrOffline =
+                message.includes('ERR_BLOCKED_BY_CLIENT')
+                || message.toLowerCase().includes('unavailable')
+                || message.toLowerCase().includes('network')
+
+            if (blockedOrOffline) {
+                showToast('Join failed: network/ad-blocker blocked Firebase. Disable blocker for this site and try again.', 'error')
+            } else {
+                showToast('Failed to join space.', 'error')
+            }
         } finally {
             setSaving(false)
         }
