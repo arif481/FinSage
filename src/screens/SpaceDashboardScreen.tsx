@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useSpaces } from '@/hooks/useSpaces'
@@ -18,6 +18,54 @@ export const SpaceDashboardScreen = () => {
     const space = spaces.find((s) => s.id === spaceId)
     const { transactions, loans, reminders, activities, loading, error } = useSpaceCollections(spaceId)
     const [codeCopied, setCodeCopied] = useState(false)
+    const members = space?.members ?? []
+
+    const handleCopyCode = async () => {
+        try {
+            await navigator.clipboard.writeText(space.inviteCode)
+            setCodeCopied(true)
+            showToast('Invite code copied!', 'success')
+            setTimeout(() => setCodeCopied(false), 2000)
+        } catch {
+            showToast('Failed to copy', 'error')
+        }
+    }
+
+    // ─── Balance calculations ───
+    const balanceMap = new Map<string, Map<string, number>>()
+
+    // Initialize all members
+    for (const m of members) {
+        balanceMap.set(m.uid, new Map())
+    }
+
+    // Process loans
+    for (const loan of loans) {
+        if (loan.status === 'settled') continue
+        const remaining = loan.amount - loan.repaidAmount
+        if (remaining <= 0) continue
+
+        // toUid owes fromUid
+        const toOwes = balanceMap.get(loan.toUid)
+        if (toOwes) {
+            toOwes.set(loan.fromUid, (toOwes.get(loan.fromUid) ?? 0) + remaining)
+        }
+    }
+
+    // Net balance per member
+    const netBalances: { member: SpaceMember; owes: number; isOwed: number }[] = []
+    for (const m of members) {
+        let owes = 0
+        let isOwed = 0
+        const myDebts = balanceMap.get(m.uid)
+        if (myDebts) {
+            for (const amount of myDebts.values()) owes += amount
+        }
+        for (const [, debts] of balanceMap) {
+            isOwed += debts.get(m.uid) ?? 0
+        }
+        netBalances.push({ member: m, owes, isOwed })
+    }
 
     if (loading) return <LoadingScreen label="Loading space..." />
 
@@ -33,60 +81,6 @@ export const SpaceDashboardScreen = () => {
             </main>
         )
     }
-
-    const handleCopyCode = async () => {
-        try {
-            await navigator.clipboard.writeText(space.inviteCode)
-            setCodeCopied(true)
-            showToast('Invite code copied!', 'success')
-            setTimeout(() => setCodeCopied(false), 2000)
-        } catch {
-            showToast('Failed to copy', 'error')
-        }
-    }
-
-    // ─── Balance calculations ───
-    const balanceMap = useMemo(() => {
-        const map = new Map<string, Map<string, number>>()
-
-        // Initialize all members
-        for (const m of space.members) {
-            map.set(m.uid, new Map())
-        }
-
-        // Process loans
-        for (const loan of loans) {
-            if (loan.status === 'settled') continue
-            const remaining = loan.amount - loan.repaidAmount
-            if (remaining <= 0) continue
-
-            // toUid owes fromUid
-            const toOwes = map.get(loan.toUid)
-            if (toOwes) {
-                toOwes.set(loan.fromUid, (toOwes.get(loan.fromUid) ?? 0) + remaining)
-            }
-        }
-
-        return map
-    }, [loans, space.members])
-
-    // Net balance per member
-    const netBalances = useMemo(() => {
-        const nets: { member: SpaceMember; owes: number; isOwed: number }[] = []
-        for (const m of space.members) {
-            let owes = 0
-            let isOwed = 0
-            const myDebts = balanceMap.get(m.uid)
-            if (myDebts) {
-                for (const amount of myDebts.values()) owes += amount
-            }
-            for (const [, debts] of balanceMap) {
-                isOwed += debts.get(m.uid) ?? 0
-            }
-            nets.push({ member: m, owes, isOwed })
-        }
-        return nets
-    }, [balanceMap, space.members])
 
     const totalExpenses = transactions
         .filter((t) => t.type === 'expense' || t.type === 'credit_purchase')
