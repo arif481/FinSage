@@ -21,6 +21,8 @@ export const SpaceDashboardScreen = () => {
     const members = space?.members ?? []
 
     const handleCopyCode = async () => {
+        if (!space) return
+
         try {
             await navigator.clipboard.writeText(space.inviteCode)
             setCodeCopied(true)
