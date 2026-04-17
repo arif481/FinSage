@@ -40,6 +40,21 @@ const RecurringScreen = lazy(async () =>
 const CategoriesScreen = lazy(async () =>
   import('@/screens/CategoriesScreen').then((module) => ({ default: module.CategoriesScreen })),
 )
+const SpacesListScreen = lazy(async () =>
+  import('@/screens/SpacesListScreen').then((module) => ({ default: module.SpacesListScreen })),
+)
+const SpaceDashboardScreen = lazy(async () =>
+  import('@/screens/SpaceDashboardScreen').then((module) => ({ default: module.SpaceDashboardScreen })),
+)
+const SpaceTransactionsScreen = lazy(async () =>
+  import('@/screens/SpaceTransactionsScreen').then((module) => ({ default: module.SpaceTransactionsScreen })),
+)
+const SpaceLoansScreen = lazy(async () =>
+  import('@/screens/SpaceLoansScreen').then((module) => ({ default: module.SpaceLoansScreen })),
+)
+const SpaceSettingsScreen = lazy(async () =>
+  import('@/screens/SpaceSettingsScreen').then((module) => ({ default: module.SpaceSettingsScreen })),
+)
 const AboutScreen = lazy(async () =>
   import('@/screens/public/AboutScreen').then((module) => ({ default: module.AboutScreen })),
 )
@@ -104,6 +119,11 @@ function App() {
           <Route path="splits" element={withLoading('Loading splits...', <SplitExpensesScreen />)} />
           <Route path="recurring" element={withLoading('Loading recurring...', <RecurringScreen />)} />
           <Route path="categories" element={withLoading('Loading categories...', <CategoriesScreen />)} />
+          <Route path="spaces" element={withLoading('Loading spaces...', <SpacesListScreen />)} />
+          <Route path="spaces/:spaceId" element={withLoading('Loading space...', <SpaceDashboardScreen />)} />
+          <Route path="spaces/:spaceId/transactions" element={withLoading('Loading transactions...', <SpaceTransactionsScreen />)} />
+          <Route path="spaces/:spaceId/loans" element={withLoading('Loading loans...', <SpaceLoansScreen />)} />
+          <Route path="spaces/:spaceId/settings" element={withLoading('Loading settings...', <SpaceSettingsScreen />)} />
         </Route>
 
         <Route path="/" element={<PublicLayout />}>
