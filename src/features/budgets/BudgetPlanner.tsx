@@ -60,7 +60,11 @@ export const BudgetPlanner = ({
   }
 
   return (
-    <div className="card stack" style={{ '--stagger': 1 } as React.CSSProperties}>
+    <div
+      id="budget-planner"
+      className="card stack"
+      style={{ '--stagger': 1 } as React.CSSProperties}
+    >
       <h3>📋 Budget planner</h3>
       <p className="section-subtitle">Set category limits for {month}.</p>
 
@@ -72,7 +76,13 @@ export const BudgetPlanner = ({
         const statusTone = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'good'
 
         return (
-          <div key={category.id} className="budget-row" style={{ animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${index * 60}ms` }}>
+          <div
+            key={category.id}
+            className="budget-row"
+            style={{
+              animation: `fade-up 350ms cubic-bezier(0.16, 1, 0.3, 1) both ${index * 60}ms`,
+            }}
+          >
             <div className="budget-row__meta">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span className={`status-dot status-dot--${statusTone}`} />
@@ -106,7 +116,11 @@ export const BudgetPlanner = ({
                 />
                 <small style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{Math.round(percent)}% used</span>
-                  {percent >= 100 && <span className="error-text" style={{ fontSize: '0.72rem' }}>Over budget!</span>}
+                  {percent >= 100 && (
+                    <span className="error-text" style={{ fontSize: '0.72rem' }}>
+                      Over budget!
+                    </span>
+                  )}
                 </small>
               </div>
             </div>
