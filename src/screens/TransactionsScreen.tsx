@@ -5,6 +5,7 @@ import { TransactionTable } from '@/features/transactions/TransactionTable'
 import { useAuth } from '@/hooks/useAuth'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFinanceCollections } from '@/hooks/useFinanceCollections'
+import { useQuickCreateParam } from '@/hooks/useQuickCreateParam'
 import { classifyExpense } from '@/services/ai/assistant'
 import {
   downloadCsv,
@@ -66,6 +67,16 @@ export const TransactionsScreen = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
 
+  useQuickCreateParam(
+    'transaction',
+    () => {
+      setEditingTransaction(undefined)
+      setSuggestedCategoryId(undefined)
+      setAiStatus(null)
+    },
+    { scrollToId: 'transaction-form' },
+  )
+
   const filteredTransactions = useMemo(() => {
     const now = new Date()
     let result = transactions
@@ -84,7 +95,9 @@ export const TransactionsScreen = () => {
       const yearStart = `${now.getFullYear()}-01-01`
       result = result.filter((t) => t.date >= yearStart)
     } else if (dateRange === 'custom' && customFrom && customTo) {
-      result = result.filter((t) => t.date.slice(0, 10) >= customFrom && t.date.slice(0, 10) <= customTo)
+      result = result.filter(
+        (t) => t.date.slice(0, 10) >= customFrom && t.date.slice(0, 10) <= customTo,
+      )
     }
 
     // Type filter
@@ -117,7 +130,17 @@ export const TransactionsScreen = () => {
     })
 
     return result
-  }, [search, selectedCategory, typeFilter, dateRange, customFrom, customTo, sortField, sortDir, transactions])
+  }, [
+    search,
+    selectedCategory,
+    typeFilter,
+    dateRange,
+    customFrom,
+    customTo,
+    sortField,
+    sortDir,
+    transactions,
+  ])
 
   const currentMonth = toMonthKey(new Date().toISOString())
   const currentMonthTransactions = transactions.filter(
@@ -278,28 +301,41 @@ export const TransactionsScreen = () => {
 
       <section className="insight-strip">
         {insightData.map((item, i) => (
-          <article key={item.label} className="insight-strip__item" style={{ '--stagger': i } as React.CSSProperties}>
+          <article
+            key={item.label}
+            className="insight-strip__item"
+            style={{ '--stagger': i } as React.CSSProperties}
+          >
             <small>{item.label}</small>
             <strong>{item.value}</strong>
           </article>
         ))}
       </section>
 
-      <TransactionForm
-        categories={categories}
-        initialTransaction={editingTransaction}
-        loading={submitting || loading}
-        onCancel={() => {
-          setEditingTransaction(undefined)
-          setSuggestedCategoryId(undefined)
-          setAiStatus(null)
-        }}
-        onRequestSuggestion={handleAiSuggestion}
-        suggestedCategoryId={suggestedCategoryId}
-        onSubmit={handleSubmit}
-      />
+      <div id="transaction-form">
+        <TransactionForm
+          categories={categories}
+          initialTransaction={editingTransaction}
+          loading={submitting || loading}
+          onCancel={() => {
+            setEditingTransaction(undefined)
+            setSuggestedCategoryId(undefined)
+            setAiStatus(null)
+          }}
+          onRequestSuggestion={handleAiSuggestion}
+          suggestedCategoryId={suggestedCategoryId}
+          onSubmit={handleSubmit}
+        />
+      </div>
 
-      {aiStatus ? <p className="info-text info-text--highlight" style={{ animation: 'fade-up 300ms ease both' }}>{aiStatus}</p> : null}
+      {aiStatus ? (
+        <p
+          className="info-text info-text--highlight"
+          style={{ animation: 'fade-up 300ms ease both' }}
+        >
+          {aiStatus}
+        </p>
+      ) : null}
 
       <CsvImportExport
         disabled={loading}
@@ -327,7 +363,10 @@ export const TransactionsScreen = () => {
           {/* Type filter */}
           <label className="field">
             <span>🔀 Type</span>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | TransactionType)}>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as 'all' | TransactionType)}
+            >
               <option value="all">All types</option>
               <option value="income">Income only</option>
               <option value="expense">Expense only</option>
@@ -367,7 +406,11 @@ export const TransactionsScreen = () => {
           <div className="field-row" style={{ animation: 'fade-up 300ms ease both' }}>
             <label className="field">
               <span>From</span>
-              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
             </label>
             <label className="field">
               <span>To</span>
@@ -378,35 +421,76 @@ export const TransactionsScreen = () => {
       </section>
 
       {/* Bulk actions + sort controls */}
-      <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+      <section
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+        }}
+      >
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button className="secondary-button" type="button" onClick={toggleSelectAll} style={{ fontSize: '0.85rem' }}>
-            {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0 ? '☑ Deselect all' : '☐ Select all'}
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={toggleSelectAll}
+            style={{ fontSize: '0.85rem' }}
+          >
+            {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0
+              ? '☑ Deselect all'
+              : '☐ Select all'}
           </button>
           {selectedIds.size > 0 && (
             <>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{selectedIds.size} selected</span>
-              <button className="secondary-button" type="button" disabled={bulkDeleting}
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {selectedIds.size} selected
+              </span>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={bulkDeleting}
                 style={{ fontSize: '0.85rem', color: 'var(--danger)' }}
-                onClick={() => void handleBulkDelete()}>
+                onClick={() => void handleBulkDelete()}
+              >
                 🗑 Delete selected
               </button>
-              <button className="secondary-button" type="button"
+              <button
+                className="secondary-button"
+                type="button"
                 style={{ fontSize: '0.85rem' }}
-                onClick={() => handleExport(filteredTransactions.filter((t) => selectedIds.has(t.id)))}>
+                onClick={() =>
+                  handleExport(filteredTransactions.filter((t) => selectedIds.has(t.id)))
+                }
+              >
                 📤 Export selected
               </button>
             </>
           )}
         </div>
         <div style={{ display: 'flex', gap: '0.25rem' }}>
-          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('date')}>
+          <button
+            className="secondary-button"
+            type="button"
+            style={{ fontSize: '0.8rem' }}
+            onClick={() => cycleSortField('date')}
+          >
             Date{sortIndicator('date')}
           </button>
-          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('amount')}>
+          <button
+            className="secondary-button"
+            type="button"
+            style={{ fontSize: '0.8rem' }}
+            onClick={() => cycleSortField('amount')}
+          >
             Amount{sortIndicator('amount')}
           </button>
-          <button className="secondary-button" type="button" style={{ fontSize: '0.8rem' }} onClick={() => cycleSortField('description')}>
+          <button
+            className="secondary-button"
+            type="button"
+            style={{ fontSize: '0.8rem' }}
+            onClick={() => cycleSortField('description')}
+          >
             Name{sortIndicator('description')}
           </button>
         </div>
