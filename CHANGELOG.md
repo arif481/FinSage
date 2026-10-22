@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.12.0...finsage-web-v0.13.0) (2026-10-22)
+
+
+### Features
+
+* add app-wide quick add flow ([f7a0b66](https://github.com/arif481/FinSage/commit/f7a0b661202c4f82ffaf6efcac35cf254bfed903))
+
 ## [0.12.0](https://github.com/arif481/FinSage/compare/finsage-web-v0.11.0...finsage-web-v0.12.0) (2026-04-17)
 
 
