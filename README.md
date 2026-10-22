@@ -90,9 +90,8 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full required secrets and opera
 - Firestore access is enforced by rules in [firestore.rules](firestore.rules).
 - Vulnerability reporting policy: [SECURITY.md](SECURITY.md)
 
-## Governance
+## Project files
 
 - Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Change history: [CHANGELOG.md](CHANGELOG.md)
 - License: [LICENSE](LICENSE)
